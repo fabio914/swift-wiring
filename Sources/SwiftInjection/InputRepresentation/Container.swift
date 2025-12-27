@@ -7,15 +7,28 @@ enum ContainerDefinitionError: Error {
 }
 
 struct Binding {
+    enum Kind {
+        case singleton
+        case build
+    }
+
+    let kind: Kind
     let className: String
     let protocolName: String
+    let sourceLocation: SourceLocation
 }
 
+///
+/// Container Definition
+/// A container can hold instances (singletons), build instances, and inject instances.
+/// This container definition is a protocol with extra attributes defining the Container name,
+/// its bindings and singletons.
+///
 struct ContainerDefinition {
     let containerName: String
-//    let containerProtocolName: String
-//    let binds: [Binding]
-//    let singletons: [Binding]
+    let containerProtocolName: String
+    let bindings: [String: Binding] // Protocol name is the Key
+    let protocolDeclaration: ProtocolDeclSyntax
 
     init?(
         converter: SourceLocationConverter,
@@ -26,6 +39,15 @@ struct ContainerDefinition {
         }
 
         self.containerName = containerName
+        self.containerProtocolName = protocolDeclaration.name.text
+        self.bindings = try bindingAttributes(converter: converter, item: protocolDeclaration)
+        self.protocolDeclaration = protocolDeclaration
+    }
+
+    func filteredProtocolDeclaration() -> ProtocolDeclSyntax {
+        // TODO: Filter out our attributes, so we could print this in the output version of this file
+        // without the extra annotations
+        protocolDeclaration
     }
 }
 
@@ -101,4 +123,107 @@ func containerNameAttribute(
     }
 
     return containerName
+}
+
+enum BindingAttributeError: Error {
+    case missingAttributes
+    case missingBindings
+    case missingLabel
+    case invalidNumberOfArgumentsForBinding
+    case invalidBindingAttribute
+    case multipleBindingsFoundForProtocol(String)
+}
+
+///
+/// Extracts Binding attributes from a Protocol definition
+/// Format:
+///   @Bind(MyClass, MyProtocol)
+///   @Singleton(MySingleton, MyOtherProtocol)
+///
+func bindingAttributes(
+    converter: SourceLocationConverter,
+    item: ProtocolDeclSyntax
+) throws -> [String: Binding] {
+    guard !item.attributes.isEmpty else {
+        throw InputFileError(
+            location: item.startLocation(converter: converter),
+            error: BindingAttributeError.missingAttributes
+        )
+    }
+
+    let bindings: [Binding] = try item.attributes.compactMap { element -> Binding? in
+        guard let attribute = element.as(AttributeSyntax.self),
+            let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self)
+        else {
+            return nil
+        }
+
+        let bindingKind: Binding.Kind
+
+        switch identifier.name.text {
+        case "Bind":
+            bindingKind = .build
+        case "Singleton":
+            bindingKind = .singleton
+        default:
+            return nil
+        }
+
+        guard let labeledArguments = attribute.arguments?.as(LabeledExprListSyntax.self),
+              labeledArguments.count != 0
+        else {
+            throw InputFileError(
+                location: attribute.startLocation(converter: converter),
+                error: BindingAttributeError.missingLabel
+            )
+        }
+
+        guard labeledArguments.count == 2 else {
+            throw InputFileError(
+                location: attribute.startLocation(converter: converter),
+                error: BindingAttributeError.invalidNumberOfArgumentsForBinding
+            )
+        }
+
+        let classIndex = labeledArguments.index(at: 0)
+        let protocolIndex = labeledArguments.index(at: 1)
+
+        guard let classNameExpression = labeledArguments[classIndex].expression.as(DeclReferenceExprSyntax.self),
+              let protocolNameExpression = labeledArguments[protocolIndex].expression.as(DeclReferenceExprSyntax.self)
+        else {
+            throw InputFileError(
+                location: attribute.startLocation(converter: converter),
+                error: BindingAttributeError.invalidBindingAttribute
+            )
+        }
+
+        return Binding(
+            kind: bindingKind,
+            className: classNameExpression.baseName.text,
+            protocolName: protocolNameExpression.baseName.text,
+            sourceLocation: attribute.startLocation(converter: converter)
+        )
+    }
+
+    guard !bindings.isEmpty else {
+        throw InputFileError(
+            location: item.startLocation(converter: converter),
+            error: BindingAttributeError.missingBindings
+        )
+    }
+
+    var result: [String: Binding] = [:]
+
+    for binding in bindings {
+        if let existingBinding = result[binding.protocolName] {
+            throw InputFileError(
+                location: existingBinding.sourceLocation,
+                error: BindingAttributeError.multipleBindingsFoundForProtocol(binding.protocolName)
+            )
+        } else {
+            result[binding.protocolName] = binding
+        }
+    }
+
+    return result
 }
