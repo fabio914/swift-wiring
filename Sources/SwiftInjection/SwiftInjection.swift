@@ -38,7 +38,14 @@ struct SwiftInjection: ParsableCommand {
                 try ContainerDefinition(converter: sourceLocationConverter, protocolDeclaration: item)
             }
 
+            let classes = firstSource.statements.compactMap { item in item.item.as(ClassDeclSyntax.self) }
+
+            let injectableClasses = try classes.compactMap { item -> InjectableClassDefinition? in
+                try InjectableClassDefinition(converter: sourceLocationConverter, classDeclaration: item)
+            }
+
             print(containers)
+            print(injectableClasses)
         } catch {
             console.fatalError(error)
         }

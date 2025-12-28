@@ -2,11 +2,7 @@ import Foundation
 import SwiftSyntax
 import SwiftParser
 
-enum ContainerDefinitionError: Error {
-
-}
-
-struct Binding {
+struct Binding: CustomStringConvertible {
     enum Kind {
         case singleton
         case build
@@ -16,6 +12,10 @@ struct Binding {
     let className: String
     let protocolName: String
     let sourceLocation: SourceLocation
+
+    var description: String {
+        "Binding(\(kind), \(className), \(protocolName))"
+    }
 }
 
 ///
@@ -24,7 +24,7 @@ struct Binding {
 /// This container definition is a protocol with extra attributes defining the Container name,
 /// its bindings and singletons.
 ///
-struct ContainerDefinition {
+struct ContainerDefinition: CustomStringConvertible {
     let containerName: String
     let containerProtocolName: String
     let bindings: [String: Binding] // Protocol name is the Key
@@ -48,6 +48,10 @@ struct ContainerDefinition {
         // TODO: Filter out our attributes, so we could print this in the output version of this file
         // without the extra annotations
         protocolDeclaration
+    }
+
+    var description: String {
+        "ContainerDefinition(\(containerName), \(containerProtocolName), \(bindings))"
     }
 }
 
