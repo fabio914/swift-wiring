@@ -2,9 +2,15 @@ import Foundation
 import SwiftSyntax
 import SwiftParser
 
+enum InjectableClassDefinitionError: Error {
+    case missingInitializer
+    case multipleInitializersDetected
+}
+
 struct InjectableClassDefinition: CustomStringConvertible {
     let className: String
-    // TODO: Extract dependencies and parameters
+    let initializerDefinition: InitializerDefinition
+    let classDeclaration: ClassDeclSyntax
 
     init?(
         converter: SourceLocationConverter,
@@ -15,6 +21,33 @@ struct InjectableClassDefinition: CustomStringConvertible {
         }
 
         self.className = classDeclaration.name.text
+        self.classDeclaration = classDeclaration
+
+        let initializers = classDeclaration.memberBlock.members.compactMap {
+            item in item.decl.as(InitializerDeclSyntax.self)
+        }
+
+        // Only one initializer supported for now
+
+        if initializers.count == 0 {
+            throw InputFileError(
+                location: classDeclaration.startLocation(converter: converter),
+                error: InjectableClassDefinitionError.missingInitializer
+            )
+        } else if initializers.count > 1 {
+            throw InputFileError(
+                location: classDeclaration.startLocation(converter: converter),
+                error: InjectableClassDefinitionError.multipleInitializersDetected
+            )
+        }
+
+        self.initializerDefinition = try InitializerDefinition(converter: converter, initializerDeclaration: initializers[0])
+    }
+
+    func filteredClassDeclaration() -> ClassDeclSyntax {
+        // TODO: Filter out our attributes, so we could print this in the output version of this file
+        // without the extra annotations
+        classDeclaration
     }
 
     var description: String {

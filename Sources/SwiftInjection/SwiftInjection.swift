@@ -38,6 +38,7 @@ struct SwiftInjection: ParsableCommand {
                 try ContainerDefinition(converter: sourceLocationConverter, protocolDeclaration: item)
             }
 
+            // Ignoring nested classes
             let classes = firstSource.statements.compactMap { item in item.item.as(ClassDeclSyntax.self) }
 
             let injectableClasses = try classes.compactMap { item -> InjectableClassDefinition? in
