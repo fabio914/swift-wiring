@@ -45,9 +45,7 @@ struct ContainerDefinition: CustomStringConvertible {
     }
 
     func filteredProtocolDeclaration() -> ProtocolDeclSyntax {
-        // TODO: Filter out our attributes, so we could print this in the output version of this file
-        // without the extra annotations
-        protocolDeclaration
+        filterContainerAttributes(from: protocolDeclaration)
     }
 
     var description: String {
@@ -230,4 +228,25 @@ func bindingAttributes(
     }
 
     return result
+}
+
+func filterContainerAttributes(
+    from item: ProtocolDeclSyntax
+) -> ProtocolDeclSyntax {
+    item.with(
+        \.attributes,
+        item.attributes.filter { element in
+            if let attribute = element.as(AttributeSyntax.self),
+                let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self) {
+                switch identifier.name.text {
+                case "Container", "Bind", "Singleton":
+                    return false
+                default:
+                    return true
+                }
+            }
+
+            return true
+        }
+    )
 }

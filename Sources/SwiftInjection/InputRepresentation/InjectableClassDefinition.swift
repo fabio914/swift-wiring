@@ -81,9 +81,22 @@ struct InjectableClassDefinition: CustomStringConvertible {
     }
 
     func filteredClassDeclaration() -> ClassDeclSyntax {
-        // TODO: Filter out our attributes, so we could print this in the output version of this file
-        // without the extra annotations
-        classDeclaration
+        let filteredInitializerDeclaration = initializerDefinition.filteredInitializerDeclaration()
+
+        return classDeclaration.with(
+            \.memberBlock.members,
+            .init(
+                classDeclaration.memberBlock.members.map { item in
+                    if item.decl.is(InitializerDeclSyntax.self) {
+                        var newItem = item
+                        newItem.decl = .init(fromProtocol: filteredInitializerDeclaration)
+                        return newItem
+                    } else {
+                        return item
+                    }
+                }
+            )
+        )
     }
 
     var description: String {

@@ -52,21 +52,22 @@ struct InitializerDefinition: CustomStringConvertible {
         }
     }
 
-    var hasDependencies: Bool {
-        parameters.first(where: {
+    var dependencies: [DependencyDefinition] {
+        parameters.compactMap {
             switch $0.kind {
-            case .dependency:
-                true
+            case .dependency(let dependency):
+                dependency
             default:
-                false
+                nil
             }
-        }) != nil
+        }
     }
 
     func filteredInitializerDeclaration() -> InitializerDeclSyntax {
-        // TODO: Filter out our attributes, so we could print this in the output version of this file
-        // without the extra annotations
-        initializerDeclaration
+        initializerDeclaration.with(
+            \.signature.parameterClause.parameters,
+            .init(parameters.map { $0.filteredFunctionParameterDefinition() })
+        )
     }
 
     var description: String {
@@ -97,9 +98,7 @@ struct ParameterDefinition: CustomStringConvertible {
     }
 
     func filteredFunctionParameterDefinition() -> FunctionParameterSyntax {
-        // TODO: Filter out our attributes, so we could print this in the output version of this file
-        // without the extra annotations
-        functionParameter
+        filterDependencyAttribute(from: functionParameter)
     }
 
     var description: String {
@@ -195,5 +194,22 @@ func dependencyAttribute(
     return DependencyDefinition(
         parameterName: item.firstName.text,
         type: identifier.name.text
+    )
+}
+
+func filterDependencyAttribute(
+    from item: FunctionParameterSyntax
+) -> FunctionParameterSyntax {
+    item.with(
+        \.attributes,
+        item.attributes.filter { element in
+            if let attribute = element.as(AttributeSyntax.self),
+                let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self),
+                  identifier.name.text == "Dependency" {
+                return false
+            }
+
+            return true
+        }
     )
 }

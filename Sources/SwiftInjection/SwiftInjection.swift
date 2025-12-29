@@ -20,33 +20,21 @@ struct SwiftInjection: ParsableCommand {
         let console = ConsoleOutput()
 
         do {
-            let sourceFiles = try inputFiles.map(parse)
-
-            //        print(sourceFiles)
+            let sourceFiles = try inputFiles.map { fileName in
+                try SourceDefinition(fileName: fileName, tree: try parse(file: fileName))
+            }
 
             guard sourceFiles.count > 0 else {
                 throw SwiftInjectionError.missingInputFile
             }
 
-            let firstFileName = inputFiles[0]
-            let firstSource = sourceFiles[0]
-            let sourceLocationConverter = SourceLocationConverter(fileName: firstFileName, tree: firstSource)
+            print("Sources: \(sourceFiles)")
 
-            let protocols = firstSource.statements.compactMap { item in item.item.as(ProtocolDeclSyntax.self) }
+            // TODO: Collect dependencies and containers from all source files, check duplicates and resolve dependencies
 
-            let containers: [ContainerDefinition] = try protocols.compactMap { item -> ContainerDefinition? in
-                try ContainerDefinition(converter: sourceLocationConverter, protocolDeclaration: item)
-            }
+            // TODO: Filter out source files and save to output
 
-            // Ignoring nested classes
-            let classes = firstSource.statements.compactMap { item in item.item.as(ClassDeclSyntax.self) }
-
-            let injectableClasses = try classes.compactMap { item -> InjectableClassDefinition? in
-                try InjectableClassDefinition(converter: sourceLocationConverter, classDeclaration: item)
-            }
-
-            print(containers)
-            print(injectableClasses)
+            // TODO: Output file with Container implementations
         } catch {
             console.fatalError(error)
         }
