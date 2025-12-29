@@ -51,7 +51,7 @@ struct InjectableClassDefinition: CustomStringConvertible {
     }
 
     var description: String {
-        "InjectableClassDefinition(\(className))"
+        "InjectableClassDefinition(\(className), \(initializerDefinition))"
     }
 }
 
