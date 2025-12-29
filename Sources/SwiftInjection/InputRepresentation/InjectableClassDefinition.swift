@@ -5,10 +5,13 @@ import SwiftParser
 enum InjectableClassDefinitionError: Error {
     case missingInitializer
     case multipleInitializersDetected
+    case classWithGenericsNotSupported
+    case unsupportedInheritance
 }
 
 struct InjectableClassDefinition: CustomStringConvertible {
     let className: String
+    let inheritanceChain: [String]
     let initializerDefinition: InitializerDefinition
     let classDeclaration: ClassDeclSyntax
 
@@ -20,7 +23,40 @@ struct InjectableClassDefinition: CustomStringConvertible {
             return nil
         }
 
+        if let genericParameterClause = classDeclaration.genericParameterClause {
+            throw InputFileError(
+                location: genericParameterClause.startLocation(converter: converter),
+                error: InjectableClassDefinitionError.classWithGenericsNotSupported
+            )
+        }
+
+        if let genericWhereClause = classDeclaration.genericWhereClause {
+            throw InputFileError(
+                location: genericWhereClause.startLocation(converter: converter),
+                error: InjectableClassDefinitionError.classWithGenericsNotSupported
+            )
+        }
+
         self.className = classDeclaration.name.text
+
+        self.inheritanceChain = try classDeclaration.inheritanceClause?.inheritedTypes.map { item in
+            guard let identifier = item.type.as(IdentifierTypeSyntax.self) else {
+                throw InputFileError(
+                    location: item.startLocation(converter: converter),
+                    error: InjectableClassDefinitionError.unsupportedInheritance
+                )
+            }
+
+            if let genericArgumentClause = identifier.genericArgumentClause {
+                throw InputFileError(
+                    location: genericArgumentClause.startLocation(converter: converter),
+                    error: InjectableClassDefinitionError.classWithGenericsNotSupported
+                )
+            }
+
+            return identifier.name.text
+        } ?? []
+
         self.classDeclaration = classDeclaration
 
         let initializers = classDeclaration.memberBlock.members.compactMap {
@@ -51,7 +87,7 @@ struct InjectableClassDefinition: CustomStringConvertible {
     }
 
     var description: String {
-        "InjectableClassDefinition(\(className), \(initializerDefinition))"
+        "InjectableClassDefinition(\(className), \(inheritanceChain), \(initializerDefinition))"
     }
 }
 
