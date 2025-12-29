@@ -4,7 +4,6 @@ import SwiftSyntax
 import SwiftParser
 
 enum SwiftInjectionError: Error {
-    case missingInputFile
     case failedToReadFile(String, Error)
 }
 
@@ -24,15 +23,8 @@ struct SwiftInjection: ParsableCommand {
                 try SourceDefinition(fileName: fileName, tree: try parse(file: fileName))
             }
 
-            guard sourceFiles.count > 0 else {
-                throw SwiftInjectionError.missingInputFile
-            }
-
-            print("Sources: \(sourceFiles)")
-
-            print("Filtered sources: \(sourceFiles[0].filteredSource())")
-
-            // TODO: Collect dependencies and containers from all source files, check duplicates and resolve dependencies
+            let resolvedContainers = try DependencyResolver(sources: sourceFiles).resolvedContainers
+            print(resolvedContainers)
 
             // TODO: Filter out source files and save to output
 

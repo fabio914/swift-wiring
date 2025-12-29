@@ -11,9 +11,10 @@ enum InjectableClassDefinitionError: Error {
 
 struct InjectableClassDefinition: CustomStringConvertible {
     let className: String
-    let inheritanceChain: [String]
+    let inheritanceChain: [ProtocolName]
     let initializerDefinition: InitializerDefinition
     let classDeclaration: ClassDeclSyntax
+    let sourceLocation: SourceLocation
 
     init?(
         converter: SourceLocationConverter,
@@ -78,6 +79,7 @@ struct InjectableClassDefinition: CustomStringConvertible {
         }
 
         self.initializerDefinition = try InitializerDefinition(converter: converter, initializerDeclaration: initializers[0])
+        self.sourceLocation = classDeclaration.startLocation(converter: converter)
     }
 
     func filteredClassDeclaration() -> ClassDeclSyntax {

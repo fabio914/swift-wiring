@@ -18,6 +18,15 @@ struct Binding: CustomStringConvertible {
     }
 }
 
+struct Injectable: CustomStringConvertible {
+    let className: String
+    let sourceLocation: SourceLocation
+    
+    var description: String {
+        "Injectable(\(className))"
+    }
+}
+
 ///
 /// Container Definition
 /// A container can hold instances (singletons), build instances, and inject instances.
@@ -27,8 +36,14 @@ struct Binding: CustomStringConvertible {
 struct ContainerDefinition: CustomStringConvertible {
     let containerName: String
     let containerProtocolName: String
-    let bindings: [String: Binding] // Protocol name is the Key
+
+    let bindings: [ProtocolName: Binding]
+
+    // These can only be built (with other dependencies) but won't be injected into other dependencies
+    let injectables: [String: Injectable]
+
     let protocolDeclaration: ProtocolDeclSyntax
+    let sourceLocation: SourceLocation
 
     init?(
         converter: SourceLocationConverter,
@@ -41,7 +56,9 @@ struct ContainerDefinition: CustomStringConvertible {
         self.containerName = containerName
         self.containerProtocolName = protocolDeclaration.name.text
         self.bindings = try bindingAttributes(converter: converter, item: protocolDeclaration)
+        self.injectables = try injectableAttributes(converter: converter, item: protocolDeclaration)
         self.protocolDeclaration = protocolDeclaration
+        self.sourceLocation = protocolDeclaration.startLocation(converter: converter)
     }
 
     func filteredProtocolDeclaration() -> ProtocolDeclSyntax {
@@ -127,6 +144,81 @@ func containerNameAttribute(
     return containerName
 }
 
+enum InjectableAttributeError: Error {
+    case missingLabelWithClassName
+    case classNameIsMissing
+    case injectableAttributeShouldOnlyHaveOneParameter
+    case invalidInjectableAttribute
+    case multipleInjectablesForClass(String)
+}
+
+///
+/// Extracts a Injectable attribute from a Protocol definition
+/// Format: @Injectable(MyInjectableClass)
+///
+func injectableAttributes(
+    converter: SourceLocationConverter,
+    item: ProtocolDeclSyntax
+) throws -> [String: Injectable] {
+    guard !item.attributes.isEmpty else {
+        return [:]
+    }
+
+    let injectableAttributes: [Injectable] = try item.attributes.compactMap { element -> Injectable? in
+        guard let attribute = element.as(AttributeSyntax.self),
+            let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self),
+              identifier.name.text == "Injectable"
+        else {
+            return nil
+        }
+
+        guard let labeledArguments = attribute.arguments?.as(LabeledExprListSyntax.self),
+              labeledArguments.count != 0
+        else {
+            throw InputFileError(
+                location: attribute.startLocation(converter: converter),
+                error: InjectableAttributeError.missingLabelWithClassName
+            )
+        }
+
+        guard labeledArguments.count == 1 else {
+            throw InputFileError(
+                location: attribute.startLocation(converter: converter),
+                error: InjectableAttributeError.injectableAttributeShouldOnlyHaveOneParameter
+            )
+        }
+
+        let firstIndex = labeledArguments.index(at: 0)
+
+        guard let declReference = labeledArguments[firstIndex].expression.as(DeclReferenceExprSyntax.self) else {
+            throw InputFileError(
+                location: attribute.startLocation(converter: converter),
+                error: InjectableAttributeError.invalidInjectableAttribute
+            )
+        }
+
+        return Injectable(
+            className: declReference.baseName.text,
+            sourceLocation: attribute.startLocation(converter: converter)
+        )
+    }
+
+    var result: [String: Injectable] = [:]
+
+    for injectable in injectableAttributes {
+        if let existingInjectable = result[injectable.className] {
+            throw InputFileError(
+                location: existingInjectable.sourceLocation,
+                error: InjectableAttributeError.multipleInjectablesForClass(injectable.className)
+            )
+        } else {
+            result[injectable.className] = injectable
+        }
+    }
+
+    return result
+}
+
 enum BindingAttributeError: Error {
     case missingAttributes
     case missingBindings
@@ -145,7 +237,7 @@ enum BindingAttributeError: Error {
 func bindingAttributes(
     converter: SourceLocationConverter,
     item: ProtocolDeclSyntax
-) throws -> [String: Binding] {
+) throws -> [ProtocolName: Binding] {
     guard !item.attributes.isEmpty else {
         throw InputFileError(
             location: item.startLocation(converter: converter),
@@ -214,7 +306,7 @@ func bindingAttributes(
         )
     }
 
-    var result: [String: Binding] = [:]
+    var result: [ProtocolName: Binding] = [:]
 
     for binding in bindings {
         if let existingBinding = result[binding.protocolName] {
@@ -239,7 +331,7 @@ func filterContainerAttributes(
             if let attribute = element.as(AttributeSyntax.self),
                 let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self) {
                 switch identifier.name.text {
-                case "Container", "Bind", "Singleton":
+                case "Container", "Bind", "Singleton", "Injectable":
                     return false
                 default:
                     return true
