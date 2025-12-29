@@ -30,6 +30,8 @@ struct SwiftInjection: ParsableCommand {
 
             print("Sources: \(sourceFiles)")
 
+            print("Filtered sources: \(sourceFiles[0].filteredSource())")
+
             // TODO: Collect dependencies and containers from all source files, check duplicates and resolve dependencies
 
             // TODO: Filter out source files and save to output

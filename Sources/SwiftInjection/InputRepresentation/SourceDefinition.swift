@@ -8,28 +8,47 @@ struct SourceDefinition: CustomStringConvertible {
 
     let fileName: String
     let tree: SourceFileSyntax
+    private let filteredStatements: [CodeBlockItemSyntax]
 
     init(fileName: String, tree: SourceFileSyntax) throws {
         let sourceLocationConverter = SourceLocationConverter(fileName: fileName, tree: tree)
 
-        let protocols = tree.statements.compactMap { item in item.item.as(ProtocolDeclSyntax.self) }
+        var containers: [ContainerDefinition] = []
+        var injectableClasses: [InjectableClassDefinition] = []
+        var filteredStatements: [CodeBlockItemSyntax] = []
 
-        self.containers = try protocols.compactMap { item -> ContainerDefinition? in
-            try ContainerDefinition(converter: sourceLocationConverter, protocolDeclaration: item)
-        }
-
-        // Ignoring nested classes
-        let classes = tree.statements.compactMap { item in item.item.as(ClassDeclSyntax.self) }
-
-        self.injectableClasses = try classes.compactMap { item -> InjectableClassDefinition? in
-            try InjectableClassDefinition(converter: sourceLocationConverter, classDeclaration: item)
+        try tree.statements.forEach { item in
+            if let protocolDeclaration = item.item.as(ProtocolDeclSyntax.self) {
+                if let container = try ContainerDefinition(converter: sourceLocationConverter, protocolDeclaration: protocolDeclaration) {
+                    containers.append(container)
+                    filteredStatements.append(item.with(\.item, .init(container.filteredProtocolDeclaration())))
+                } else {
+                    filteredStatements.append(item)
+                }
+            } else if let classDeclaraion = item.item.as(ClassDeclSyntax.self) {
+                // Ignoring nested classes
+                if let injectableClass = try InjectableClassDefinition(converter: sourceLocationConverter, classDeclaration: classDeclaraion) {
+                    injectableClasses.append(injectableClass)
+                    filteredStatements.append(item.with(\.item, .init(injectableClass.filteredClassDeclaration())))
+                }
+                else {
+                    filteredStatements.append(item)
+                }
+            } else {
+                filteredStatements.append(item)
+            }
         }
 
         self.fileName = fileName
         self.tree = tree
+        self.containers = containers
+        self.injectableClasses = injectableClasses
+        self.filteredStatements = filteredStatements
     }
 
-    // TODO: Filter source
+    func filteredSource() -> SourceFileSyntax {
+        tree.with(\.statements, .init(filteredStatements))
+    }
 
     var description: String {
         "SourceDefinition(\(fileName), \(containers), \(injectableClasses))"

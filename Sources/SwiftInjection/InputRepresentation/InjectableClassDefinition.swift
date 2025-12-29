@@ -83,20 +83,21 @@ struct InjectableClassDefinition: CustomStringConvertible {
     func filteredClassDeclaration() -> ClassDeclSyntax {
         let filteredInitializerDeclaration = initializerDefinition.filteredInitializerDeclaration()
 
-        return classDeclaration.with(
-            \.memberBlock.members,
-            .init(
-                classDeclaration.memberBlock.members.map { item in
-                    if item.decl.is(InitializerDeclSyntax.self) {
-                        var newItem = item
-                        newItem.decl = .init(fromProtocol: filteredInitializerDeclaration)
-                        return newItem
-                    } else {
-                        return item
+        return filterInjectableAttributes(from: classDeclaration)
+            .with(
+                \.memberBlock.members,
+                .init(
+                    classDeclaration.memberBlock.members.map { item in
+                        if item.decl.is(InitializerDeclSyntax.self) {
+                            var newItem = item
+                            newItem.decl = .init(fromProtocol: filteredInitializerDeclaration)
+                            return newItem
+                        } else {
+                            return item
+                        }
                     }
-                }
+                )
             )
-        )
     }
 
     var description: String {
@@ -153,4 +154,21 @@ func hasInjectableClassAttribute(
     }
 
     return true
+}
+
+func filterInjectableAttributes(
+    from item: ClassDeclSyntax
+) -> ClassDeclSyntax {
+    item.with(
+        \.attributes,
+        item.attributes.filter { element in
+            if let attribute = element.as(AttributeSyntax.self),
+                let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self),
+                identifier.name.text == "Inject" {
+                return false
+            }
+
+            return true
+        }
+    )
 }
