@@ -10,7 +10,6 @@ enum InjectableClassCollectionError: Error {
 
 struct InjectableClassCollection {
     let byBinding: [BindingName: [ClassName: InjectableClassDefinition]]
-    let byClassName: [ClassName: InjectableClassDefinition]
 
     init(sources: [SourceDefinition]) throws {
         var byBinding: [BindingName: [ClassName: InjectableClassDefinition]] = [:]
@@ -33,22 +32,7 @@ struct InjectableClassCollection {
             }
         }
 
-        var byClassName: [String: InjectableClassDefinition] = [:]
-
-        for injectableClass in sources.flatMap(\.injectableClasses) {
-
-            if let existingClassDefinition = byClassName[injectableClass.className] {
-                throw InputFileError(
-                    location: injectableClass.sourceLocation,
-                    error: InjectableClassCollectionError.classWithThisNameAlreadyExists(existingClassDefinition.className)
-                )
-            }
-
-            byClassName[injectableClass.className] = injectableClass
-        }
-
         self.byBinding = byBinding
-        self.byClassName = byClassName
     }
 }
 
@@ -82,28 +66,49 @@ struct ContainerCollection {
     }
 }
 
-struct ExternalDependency: Hashable {
+struct ExternalDependency: Hashable, CustomStringConvertible {
     let protocolName: String
+
+    var description: String {
+        "ExternalDependency(\(protocolName))"
+    }
 }
 
-struct InternalDependency {
+struct InternalDependency: CustomStringConvertible {
     let definition: DependencyDefinition
     let injectableClass: InjectableClassDefinition
 
     var dependencyNames: [BindingName] {
         injectableClass.initializerDefinition.dependencies.map(\.type)
     }
+
+    var description: String {
+        "InternalDependency(\(definition), \(injectableClass))"
+    }
 }
 
-enum DependencyType {
+enum DependencyType: CustomStringConvertible {
     case external(ExternalDependency)
     case `internal`(InternalDependency)
+
+    var description: String {
+        switch self {
+        case .external(let externalDependency):
+            externalDependency.description
+        case .internal(let internalDependency):
+            internalDependency.description
+        }
+    }
 }
 
-struct ResolvedDependency {
+struct ResolvedDependency: CustomStringConvertible {
     let definition: DependencyDefinition
     let injectableClass: InjectableClassDefinition
     let dependencies: [BindingName: DependencyType]
+
+    var description: String {
+        "ResolvedDependency(\(definition), \(injectableClass), \(dependencies))"
+    }
 }
 
 enum ResolvedContainerError: Error {
@@ -113,7 +118,7 @@ enum ResolvedContainerError: Error {
     case circularDependency(ClassName, BindingName)
 }
 
-struct ResolvedContainer {
+struct ResolvedContainer: CustomStringConvertible {
     let containerDefinition: ContainerDefinition
 
     let externalDependencies: [ExternalDependency]
@@ -198,6 +203,10 @@ struct ResolvedContainer {
 
         self.externalDependencies = externalDependencies.sorted(by: { $0.protocolName < $1.protocolName })
         self.resolvedDependencies = resolvedDependencies
+    }
+
+    var description: String {
+        "ResolvedContainer(\(containerDefinition.containerName), \(externalDependencies), \(resolvedDependencies))"
     }
 }
 
