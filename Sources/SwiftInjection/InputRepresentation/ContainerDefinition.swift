@@ -2,28 +2,33 @@ import Foundation
 import SwiftSyntax
 import SwiftParser
 
-struct Binding: CustomStringConvertible {
+struct DependencyDefinition: CustomStringConvertible {
     enum Kind {
         case singleton
         case build
     }
 
-    let kind: Kind
-    let className: String
-    let protocolName: String
-    let sourceLocation: SourceLocation
-
-    var description: String {
-        "Binding(\(kind), \(className), \(protocolName))"
+    enum BindingType {
+        case binding(_ protocolName: String)
+        case instance
     }
-}
 
-struct Injectable: CustomStringConvertible {
+    let kind: Kind
+    let bindingType: BindingType
     let className: String
     let sourceLocation: SourceLocation
-    
+
+    var bindingName: BindingName {
+        switch bindingType {
+        case .binding(let protocolName):
+            protocolName
+        case .instance:
+            className
+        }
+    }
+
     var description: String {
-        "Injectable(\(className))"
+        "DependencyDefinition(\(kind), \(className), \(bindingName))"
     }
 }
 
@@ -36,11 +41,7 @@ struct Injectable: CustomStringConvertible {
 struct ContainerDefinition: CustomStringConvertible {
     let containerName: String
     let containerProtocolName: String
-
-    let bindings: [ProtocolName: Binding]
-
-    // These can only be built (with other dependencies) but won't be injected into other dependencies
-    let injectables: [String: Injectable]
+    let dependencies: [DependencyDefinition]
 
     let protocolDeclaration: ProtocolDeclSyntax
     let sourceLocation: SourceLocation
@@ -55,8 +56,7 @@ struct ContainerDefinition: CustomStringConvertible {
 
         self.containerName = containerName
         self.containerProtocolName = protocolDeclaration.name.text
-        self.bindings = try bindingAttributes(converter: converter, item: protocolDeclaration)
-        self.injectables = try injectableAttributes(converter: converter, item: protocolDeclaration)
+        self.dependencies = try bindingAttributes(converter: converter, item: protocolDeclaration)
         self.protocolDeclaration = protocolDeclaration
         self.sourceLocation = protocolDeclaration.startLocation(converter: converter)
     }
@@ -66,7 +66,7 @@ struct ContainerDefinition: CustomStringConvertible {
     }
 
     var description: String {
-        "ContainerDefinition(\(containerName), \(containerProtocolName), \(bindings))"
+        "ContainerDefinition(\(containerName), \(containerProtocolName), \(dependencies))"
     }
 }
 
@@ -144,100 +144,27 @@ func containerNameAttribute(
     return containerName
 }
 
-enum InjectableAttributeError: Error {
-    case missingLabelWithClassName
-    case classNameIsMissing
-    case injectableAttributeShouldOnlyHaveOneParameter
-    case invalidInjectableAttribute
-    case multipleInjectablesForClass(String)
-}
-
-///
-/// Extracts a Injectable attribute from a Protocol definition
-/// Format: @Injectable(MyInjectableClass)
-///
-func injectableAttributes(
-    converter: SourceLocationConverter,
-    item: ProtocolDeclSyntax
-) throws -> [String: Injectable] {
-    guard !item.attributes.isEmpty else {
-        return [:]
-    }
-
-    let injectableAttributes: [Injectable] = try item.attributes.compactMap { element -> Injectable? in
-        guard let attribute = element.as(AttributeSyntax.self),
-            let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self),
-              identifier.name.text == "Injectable"
-        else {
-            return nil
-        }
-
-        guard let labeledArguments = attribute.arguments?.as(LabeledExprListSyntax.self),
-              labeledArguments.count != 0
-        else {
-            throw InputFileError(
-                location: attribute.startLocation(converter: converter),
-                error: InjectableAttributeError.missingLabelWithClassName
-            )
-        }
-
-        guard labeledArguments.count == 1 else {
-            throw InputFileError(
-                location: attribute.startLocation(converter: converter),
-                error: InjectableAttributeError.injectableAttributeShouldOnlyHaveOneParameter
-            )
-        }
-
-        let firstIndex = labeledArguments.index(at: 0)
-
-        guard let declReference = labeledArguments[firstIndex].expression.as(DeclReferenceExprSyntax.self) else {
-            throw InputFileError(
-                location: attribute.startLocation(converter: converter),
-                error: InjectableAttributeError.invalidInjectableAttribute
-            )
-        }
-
-        return Injectable(
-            className: declReference.baseName.text,
-            sourceLocation: attribute.startLocation(converter: converter)
-        )
-    }
-
-    var result: [String: Injectable] = [:]
-
-    for injectable in injectableAttributes {
-        if let existingInjectable = result[injectable.className] {
-            throw InputFileError(
-                location: existingInjectable.sourceLocation,
-                error: InjectableAttributeError.multipleInjectablesForClass(injectable.className)
-            )
-        } else {
-            result[injectable.className] = injectable
-        }
-    }
-
-    return result
-}
-
 enum BindingAttributeError: Error {
     case missingAttributes
     case missingBindings
     case missingLabel
-    case invalidNumberOfArgumentsForBinding
+    case invalidNumberOfArguments
     case invalidBindingAttribute
-    case multipleBindingsFoundForProtocol(String)
+    case multipleBindingsFoundFor(String)
 }
 
 ///
-/// Extracts Binding attributes from a Protocol definition
+/// Extracts Dependency attributes from a Protocol definition
 /// Format:
 ///   @Bind(MyClass, MyProtocol)
-///   @Singleton(MySingleton, MyOtherProtocol)
+///   @SingletonBind(MySingleton, MyOtherProtocol)
+///   @Instance(MyClass)
+///   @Singleton(MyClass)
 ///
 func bindingAttributes(
     converter: SourceLocationConverter,
     item: ProtocolDeclSyntax
-) throws -> [ProtocolName: Binding] {
+) throws -> [DependencyDefinition] {
     guard !item.attributes.isEmpty else {
         throw InputFileError(
             location: item.startLocation(converter: converter),
@@ -245,20 +172,29 @@ func bindingAttributes(
         )
     }
 
-    let bindings: [Binding] = try item.attributes.compactMap { element -> Binding? in
+    let definitions: [DependencyDefinition] = try item.attributes.compactMap { element -> DependencyDefinition? in
         guard let attribute = element.as(AttributeSyntax.self),
             let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self)
         else {
             return nil
         }
 
-        let bindingKind: Binding.Kind
+        let bindingKind: DependencyDefinition.Kind
+        let bindsToProtocol: Bool
 
         switch identifier.name.text {
         case "Bind":
             bindingKind = .build
+            bindsToProtocol = true
+        case "Instance":
+            bindingKind = .build
+            bindsToProtocol = false
+        case "SingletonBind":
+            bindingKind = .singleton
+            bindsToProtocol = true
         case "Singleton":
             bindingKind = .singleton
+            bindsToProtocol = false
         default:
             return nil
         }
@@ -272,54 +208,70 @@ func bindingAttributes(
             )
         }
 
-        guard labeledArguments.count == 2 else {
+        let expectedArguments = bindsToProtocol ? 2 : 1
+
+        guard labeledArguments.count == expectedArguments else {
             throw InputFileError(
                 location: attribute.startLocation(converter: converter),
-                error: BindingAttributeError.invalidNumberOfArgumentsForBinding
+                error: BindingAttributeError.invalidNumberOfArguments
             )
         }
 
         let classIndex = labeledArguments.index(at: 0)
-        let protocolIndex = labeledArguments.index(at: 1)
 
-        guard let classNameExpression = labeledArguments[classIndex].expression.as(DeclReferenceExprSyntax.self),
-              let protocolNameExpression = labeledArguments[protocolIndex].expression.as(DeclReferenceExprSyntax.self)
-        else {
+        guard let classNameExpression = labeledArguments[classIndex].expression.as(DeclReferenceExprSyntax.self) else {
             throw InputFileError(
                 location: attribute.startLocation(converter: converter),
                 error: BindingAttributeError.invalidBindingAttribute
             )
         }
 
-        return Binding(
+        let bindingType: DependencyDefinition.BindingType
+
+        if bindsToProtocol {
+            let protocolIndex = labeledArguments.index(at: 1)
+
+            guard let protocolNameExpression = labeledArguments[protocolIndex].expression.as(DeclReferenceExprSyntax.self) else {
+                throw InputFileError(
+                    location: attribute.startLocation(converter: converter),
+                    error: BindingAttributeError.invalidBindingAttribute
+                )
+            }
+
+            bindingType = .binding(protocolNameExpression.baseName.text)
+        } else {
+            bindingType = .instance
+        }
+
+        return DependencyDefinition(
             kind: bindingKind,
+            bindingType: bindingType,
             className: classNameExpression.baseName.text,
-            protocolName: protocolNameExpression.baseName.text,
             sourceLocation: attribute.startLocation(converter: converter)
         )
     }
 
-    guard !bindings.isEmpty else {
+    guard !definitions.isEmpty else {
         throw InputFileError(
             location: item.startLocation(converter: converter),
             error: BindingAttributeError.missingBindings
         )
     }
 
-    var result: [ProtocolName: Binding] = [:]
+    var result: [BindingName: DependencyDefinition] = [:]
 
-    for binding in bindings {
-        if let existingBinding = result[binding.protocolName] {
+    for definition in definitions {
+        if let existingBinding = result[definition.bindingName] {
             throw InputFileError(
                 location: existingBinding.sourceLocation,
-                error: BindingAttributeError.multipleBindingsFoundForProtocol(binding.protocolName)
+                error: BindingAttributeError.multipleBindingsFoundFor(definition.bindingName)
             )
         } else {
-            result[binding.protocolName] = binding
+            result[definition.bindingName] = definition
         }
     }
 
-    return result
+    return result.sorted(by: { $0.key < $1.key }).map({ $0.value })
 }
 
 func filterContainerAttributes(
@@ -331,7 +283,7 @@ func filterContainerAttributes(
             if let attribute = element.as(AttributeSyntax.self),
                 let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self) {
                 switch identifier.name.text {
-                case "Container", "Bind", "Singleton", "Injectable":
+                case "Container", "Bind", "SingletonBind", "Instance", "Singleton":
                     return false
                 default:
                     return true

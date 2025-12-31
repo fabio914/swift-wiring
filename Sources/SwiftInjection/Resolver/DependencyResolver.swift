@@ -1,10 +1,85 @@
 import Foundation
 
-enum DependencyResolverError: Error {
-    case missingInputFiles
+typealias BindingName = String // Protocol or the Class own name
+typealias ClassName = String
+typealias ContainerName = String
+
+enum InjectableClassCollectionError: Error {
+    case classWithThisNameAlreadyExists(String)
+}
+
+struct InjectableClassCollection {
+    let byBinding: [BindingName: [ClassName: InjectableClassDefinition]]
+    let byClassName: [ClassName: InjectableClassDefinition]
+
+    init(sources: [SourceDefinition]) throws {
+        var byBinding: [BindingName: [ClassName: InjectableClassDefinition]] = [:]
+
+        for injectableClass in sources.flatMap(\.injectableClasses) {
+            let namesToCheck: [BindingName] = injectableClass.inheritanceChain + [injectableClass.className]
+
+            for bindingName in namesToCheck {
+                var current = byBinding[bindingName, default: [:]]
+
+                if let existingClassDefinition = current[injectableClass.className] {
+                    throw InputFileError(
+                        location: injectableClass.sourceLocation,
+                        error: InjectableClassCollectionError.classWithThisNameAlreadyExists(existingClassDefinition.className)
+                    )
+                }
+
+                current[injectableClass.className] = injectableClass
+                byBinding[bindingName] = current
+            }
+        }
+
+        var byClassName: [String: InjectableClassDefinition] = [:]
+
+        for injectableClass in sources.flatMap(\.injectableClasses) {
+
+            if let existingClassDefinition = byClassName[injectableClass.className] {
+                throw InputFileError(
+                    location: injectableClass.sourceLocation,
+                    error: InjectableClassCollectionError.classWithThisNameAlreadyExists(existingClassDefinition.className)
+                )
+            }
+
+            byClassName[injectableClass.className] = injectableClass
+        }
+
+        self.byBinding = byBinding
+        self.byClassName = byClassName
+    }
+}
+
+enum ContainerCollectionError: Error {
     case missingContainers
     case containerWithThisNameAlreadyExists(String)
-    case classWithThisNameAlreadyExists(String)
+}
+
+struct ContainerCollection {
+    let containers: [ContainerDefinition]
+
+    init(sources: [SourceDefinition]) throws {
+        var containerDefinitions: [ContainerName: ContainerDefinition] = [:]
+
+        for container in sources.flatMap(\.containers) {
+            if let existingContainer = containerDefinitions[container.containerName] {
+                throw InputFileError(
+                    location: container.sourceLocation,
+                    error: ContainerCollectionError.containerWithThisNameAlreadyExists(existingContainer.containerName)
+                )
+            } else {
+                containerDefinitions[container.containerName] = container
+            }
+        }
+
+        guard !containerDefinitions.isEmpty else {
+            throw ContainerCollectionError.missingContainers
+        }
+
+        self.containers = containerDefinitions.sorted(by: { $0.key < $1.key }).map({ $0.value })
+    }
 }
 
 struct ExternalDependency {
@@ -12,11 +87,9 @@ struct ExternalDependency {
 }
 
 struct InternalDependency {
-    let binding: Binding
+    let definition: DependencyDefinition
     let injectableClass: InjectableClassDefinition
 }
-
-typealias ProtocolName = String
 
 //enum ResolvedDependencyWithoutParameters {
 //    case external(ExternalDependency)
@@ -29,9 +102,37 @@ typealias ProtocolName = String
 //    case injectableBuilder(InjectableClassDefinition, _ children: [ProtocolName: ResolvedDependencyWithoutParameters])
 //}
 
+enum ResolvedContainerError: Error {
+    case missingClassFor(ClassName, BindingName)
+}
+
 struct ResolvedContainer {
     let containerDefinition: ContainerDefinition
 //    let resolvedDependencies: [ResolvedDependency]
+
+    init(containerDefinition: ContainerDefinition, injectableClasses: InjectableClassCollection) throws {
+        self.containerDefinition = containerDefinition
+
+        var unresolvedInternalDependencies: [InternalDependency] = []
+
+        for dependency in containerDefinition.dependencies {
+            if let injectableClassDefinition = injectableClasses.byBinding[dependency.bindingName]?[dependency.className] {
+                unresolvedInternalDependencies.append(.init(definition: dependency, injectableClass: injectableClassDefinition))
+            } else {
+                throw InputFileError(
+                    location: containerDefinition.sourceLocation,
+                    error: ResolvedContainerError.missingClassFor(dependency.className, dependency.bindingName)
+                )
+            }
+        }
+
+        // TODO: Resolve initializers
+
+    }
+}
+
+enum DependencyResolverError: Error {
+    case missingInputFiles
 }
 
 struct DependencyResolver {
@@ -42,48 +143,12 @@ struct DependencyResolver {
             throw DependencyResolverError.missingInputFiles
         }
 
-        let containers = try Self.collectContainers(from: sources)
-        let injectableClasses = try Self.collectInjectableClasses(from: sources)
+        let containers = try ContainerCollection(sources: sources)
+        let injectableClasses = try InjectableClassCollection(sources: sources)
 
-        // TODO: Implement resolution
-        self.resolvedContainers = []
-    }
-
-    static func collectContainers(from sources: [SourceDefinition]) throws -> [String: ContainerDefinition] {
-        var containerDefinitions: [String: ContainerDefinition] = [:]
-
-        for container in sources.flatMap(\.containers) {
-            if let existingContainer = containerDefinitions[container.containerName] {
-                throw InputFileError(
-                    location: container.sourceLocation,
-                    error: DependencyResolverError.containerWithThisNameAlreadyExists(existingContainer.containerName)
-                )
-            } else {
-                containerDefinitions[container.containerName] = container
-            }
+        self.resolvedContainers = try containers.containers.map {
+            try ResolvedContainer(containerDefinition: $0, injectableClasses: injectableClasses)
         }
-
-        guard !containerDefinitions.isEmpty else {
-            throw DependencyResolverError.missingContainers
-        }
-
-        return containerDefinitions
-    }
-
-    static func collectInjectableClasses(from sources: [SourceDefinition]) throws -> [ProtocolName: [InjectableClassDefinition]] {
-        var injectableClassDefinitions: [ProtocolName: [InjectableClassDefinition]] = [:]
-
-        for injectableClass in sources.flatMap(\.injectableClasses) {
-            if injectableClass.inheritanceChain.isEmpty {
-                injectableClassDefinitions[""] = injectableClassDefinitions["", default: []] + [injectableClass]
-            } else {
-                for protocolName in injectableClass.inheritanceChain {
-                    injectableClassDefinitions[protocolName] = injectableClassDefinitions[protocolName, default: []] + [injectableClass]
-                }
-            }
-        }
-
-        return injectableClassDefinitions
     }
 
 //    static func resolve(container: ContainerDefinition, injectableClasses: [ProtocolName: [InjectableClassDefinition]]) throws -> ResolvedContainer {

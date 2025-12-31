@@ -10,8 +10,8 @@ enum InjectableClassDefinitionError: Error {
 }
 
 struct InjectableClassDefinition: CustomStringConvertible {
-    let className: String
-    let inheritanceChain: [ProtocolName]
+    let className: ClassName
+    let inheritanceChain: [BindingName]
     let initializerDefinition: InitializerDefinition
     let classDeclaration: ClassDeclSyntax
     let sourceLocation: SourceLocation

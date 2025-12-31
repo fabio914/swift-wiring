@@ -52,7 +52,7 @@ struct InitializerDefinition: CustomStringConvertible {
         }
     }
 
-    var dependencies: [DependencyDefinition] {
+    var dependencies: [InitializerDependencyDefinition] {
         parameters.compactMap {
             switch $0.kind {
             case .dependency(let dependency):
@@ -77,7 +77,7 @@ struct InitializerDefinition: CustomStringConvertible {
 
 struct ParameterDefinition: CustomStringConvertible {
     enum Kind {
-        case dependency(DependencyDefinition)
+        case dependency(InitializerDependencyDefinition)
         case parameter
     }
 
@@ -116,12 +116,12 @@ enum DependencyDefinitionError: Error {
     case genericTypeNotSupported
 }
 
-struct DependencyDefinition: CustomStringConvertible {
+struct InitializerDependencyDefinition: CustomStringConvertible {
     let parameterName: String
     let type: String
 
     var description: String {
-        "DependencyDefinition(\(parameterName), \(type))"
+        "InitializerDependencyDefinition(\(parameterName), \(type))"
     }
 }
 
@@ -133,7 +133,7 @@ struct DependencyDefinition: CustomStringConvertible {
 func dependencyAttribute(
     converter: SourceLocationConverter,
     item: FunctionParameterSyntax
-) throws -> DependencyDefinition? {
+) throws -> InitializerDependencyDefinition? {
     guard !item.attributes.isEmpty else {
         return nil
     }
@@ -191,7 +191,7 @@ func dependencyAttribute(
         )
     }
 
-    return DependencyDefinition(
+    return InitializerDependencyDefinition(
         parameterName: item.firstName.text,
         type: identifier.name.text
     )

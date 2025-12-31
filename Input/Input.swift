@@ -2,7 +2,9 @@ import Foundation
 
 @Container(MyContainer)
 @Bind(MyClass, SomeProtocol)
-@Singleton(MySingleton, SomeOtherProtocol)
+@SingletonBind(MySingleton, SomeOtherProtocol)
+@Singleton(AnotherSingleton)
+@Instance(SomeInstance)
 protocol MyContainerProtocol {
 }
 
@@ -45,6 +47,31 @@ class MySingleton: SomeOtherProtocol {
         @Dependency someDependency: SomeDependency
     ) {
         self.someDependency = someDependency
+    }
+}
+
+@Inject
+class AnotherSingleton {
+    let firstSingleton: SomeOtherProtocol
+
+    init(
+        @Dependency firstSingleton: SomeOtherProtocol
+    ) {
+        self.someDependency = someDependency
+    }
+}
+
+@Inject
+class SomeInstance {
+    let firstSingleton: SomeOtherProtocol
+    let parameter: Int
+
+    init(
+        @Dependency firstSingleton: SomeOtherProtocol,
+        parameter: Int
+    ) {
+        self.firstSingleton = firstSingleton
+        self.parameter = parameter
     }
 }
 
