@@ -63,6 +63,17 @@ struct InitializerDefinition: CustomStringConvertible {
         }
     }
 
+    var hasParameters: Bool {
+        parameters.first(where: {
+            switch $0.kind {
+            case .parameter:
+                true
+            default:
+                false
+            }
+        }) != nil
+    }
+
     func filteredInitializerDeclaration() -> InitializerDeclSyntax {
         initializerDeclaration.with(
             \.signature.parameterClause.parameters,

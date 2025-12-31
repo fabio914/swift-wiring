@@ -82,42 +82,56 @@ struct ContainerCollection {
     }
 }
 
-struct ExternalDependency {
+struct ExternalDependency: Hashable {
     let protocolName: String
 }
 
 struct InternalDependency {
     let definition: DependencyDefinition
     let injectableClass: InjectableClassDefinition
+
+    var dependencyNames: [BindingName] {
+        injectableClass.initializerDefinition.dependencies.map(\.type)
+    }
 }
 
-//enum ResolvedDependencyWithoutParameters {
-//    case external(ExternalDependency)
-//    case singleton(InternalDependency, _ children: [ProtocolName: ResolvedDependencyWithoutParameters])
-//    case builderWithoutParameters(InternalDependency, _ children: [ProtocolName: ResolvedDependencyWithoutParameters])
-//}
-//
-//enum ResolvedDependency {
-//    case builderWithParameters(InternalDependency, _ children: [ProtocolName: ResolvedDependencyWithoutParameters])
-//    case injectableBuilder(InjectableClassDefinition, _ children: [ProtocolName: ResolvedDependencyWithoutParameters])
-//}
+enum DependencyType {
+    case external(ExternalDependency)
+    case `internal`(InternalDependency)
+}
+
+struct ResolvedDependency {
+    let definition: DependencyDefinition
+    let injectableClass: InjectableClassDefinition
+    let dependencies: [BindingName: DependencyType]
+}
 
 enum ResolvedContainerError: Error {
     case missingClassFor(ClassName, BindingName)
+    case singletonClassCannotHaveParameters(ClassName)
+    case classDependsOnClassThatRequireParameters(ClassName)
+    case circularDependency(ClassName, BindingName)
 }
 
 struct ResolvedContainer {
     let containerDefinition: ContainerDefinition
-//    let resolvedDependencies: [ResolvedDependency]
+
+    let externalDependencies: [ExternalDependency]
+    let resolvedDependencies: [ResolvedDependency]
 
     init(containerDefinition: ContainerDefinition, injectableClasses: InjectableClassCollection) throws {
         self.containerDefinition = containerDefinition
 
+        // Collecting unresolved dependencies
+
         var unresolvedInternalDependencies: [InternalDependency] = []
+        var dependencyDefinitionMap: [BindingName: InternalDependency] = [:]
 
         for dependency in containerDefinition.dependencies {
             if let injectableClassDefinition = injectableClasses.byBinding[dependency.bindingName]?[dependency.className] {
-                unresolvedInternalDependencies.append(.init(definition: dependency, injectableClass: injectableClassDefinition))
+                let internalDependency = InternalDependency(definition: dependency, injectableClass: injectableClassDefinition)
+                dependencyDefinitionMap[dependency.bindingName] = internalDependency
+                unresolvedInternalDependencies.append(internalDependency)
             } else {
                 throw InputFileError(
                     location: containerDefinition.sourceLocation,
@@ -126,8 +140,64 @@ struct ResolvedContainer {
             }
         }
 
+        // Verifying dependencies and extracting external dependencies
+
+        var externalDependencies: Set<ExternalDependency> = []
+        var resolvedDependencies: [ResolvedDependency] = []
+
+        for unresolvedInternalDependency in unresolvedInternalDependencies {
+            // Singletons cannot have parameters.
+            if case .singleton = unresolvedInternalDependency.definition.kind,
+               unresolvedInternalDependency.injectableClass.initializerDefinition.hasParameters {
+                throw InputFileError(
+                    location: unresolvedInternalDependency.injectableClass.sourceLocation,
+                    error: ResolvedContainerError.singletonClassCannotHaveParameters(unresolvedInternalDependency.injectableClass.className)
+                )
+            }
+
+            var dependencyTypes: [BindingName: DependencyType] = [:]
+
+            for dependencyName in unresolvedInternalDependency.dependencyNames {
+                if let definition = dependencyDefinitionMap[dependencyName] {
+                    // Instances and Singletons can only depend on other Instances
+                    // or Singletons that take no parameters, or external dependencies.
+                    // (Otherwise its `build` function would need to contain its
+                    // own parameters and the dependency's parameters too, and etc)
+
+                    if definition.injectableClass.initializerDefinition.hasParameters {
+                        throw InputFileError(
+                            location: unresolvedInternalDependency.injectableClass.sourceLocation,
+                            error: ResolvedContainerError.classDependsOnClassThatRequireParameters(definition.injectableClass.className)
+                        )
+                    }
+
+                    dependencyTypes[dependencyName] = .internal(definition)
+                } else {
+                    // Dependencies that aren't part of this container will be added to
+                    // the external dependencies set and will be part of the container's
+                    // `init` function.
+
+                    let externalDependency = ExternalDependency(protocolName: dependencyName)
+                    externalDependencies.insert(externalDependency)
+                    dependencyTypes[dependencyName] = .external(externalDependency)
+                }
+            }
+
+            resolvedDependencies.append(
+                ResolvedDependency(
+                    definition: unresolvedInternalDependency.definition,
+                    injectableClass: unresolvedInternalDependency.injectableClass,
+                    dependencies: dependencyTypes
+                )
+            )
+        }
+
+        // TODO: Verify cycles
+
         // TODO: Resolve initializers
 
+        self.externalDependencies = externalDependencies.sorted(by: { $0.protocolName < $1.protocolName })
+        self.resolvedDependencies = resolvedDependencies
     }
 }
 
@@ -150,29 +220,4 @@ struct DependencyResolver {
             try ResolvedContainer(containerDefinition: $0, injectableClasses: injectableClasses)
         }
     }
-
-//    static func resolve(container: ContainerDefinition, injectableClasses: [ProtocolName: [InjectableClassDefinition]]) throws -> ResolvedContainer {
-//        var containerDependencies: [ProtocolName: InternalDependency] = [:]
-//        var injectableDependencies: [InjectableClassDefinition] = [:]
-//
-//        for binding in container.bindings.values.sorted(by: { $0.className < $1.className }) {
-//            binding
-//
-//        }
-//
-//        for injectable in container.injectables.values.sorted(by: { $0.className < $1.className }) {
-//            let definitions = injectableClasses["", default: []].filter({ $0.className == injectable.className })
-//            // TODO: Search in other protocols too...
-//
-//            if definitions.count == 0 {
-//                // TODO: Throw error missing Injectable
-//            } else if definitions.count > 1 {
-//                // TODO: Throw error
-//            } else {
-//                injectableDependencies.append(definitions[0])
-//            }
-//        }
-//
-//        // TODO: Resolution
-//    }
 }

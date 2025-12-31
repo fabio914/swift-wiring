@@ -41,7 +41,11 @@ struct DependencyDefinition: CustomStringConvertible {
 struct ContainerDefinition: CustomStringConvertible {
     let containerName: String
     let containerProtocolName: String
-    let dependencies: [DependencyDefinition]
+    let dependencyMap: [BindingName: DependencyDefinition]
+
+    var dependencies: [DependencyDefinition] {
+        dependencyMap.sorted(by: { $0.key < $1.key }).map({ $0.value })
+    }
 
     let protocolDeclaration: ProtocolDeclSyntax
     let sourceLocation: SourceLocation
@@ -56,7 +60,7 @@ struct ContainerDefinition: CustomStringConvertible {
 
         self.containerName = containerName
         self.containerProtocolName = protocolDeclaration.name.text
-        self.dependencies = try bindingAttributes(converter: converter, item: protocolDeclaration)
+        self.dependencyMap = try bindingAttributes(converter: converter, item: protocolDeclaration)
         self.protocolDeclaration = protocolDeclaration
         self.sourceLocation = protocolDeclaration.startLocation(converter: converter)
     }
@@ -164,7 +168,7 @@ enum BindingAttributeError: Error {
 func bindingAttributes(
     converter: SourceLocationConverter,
     item: ProtocolDeclSyntax
-) throws -> [DependencyDefinition] {
+) throws -> [BindingName: DependencyDefinition] {
     guard !item.attributes.isEmpty else {
         throw InputFileError(
             location: item.startLocation(converter: converter),
@@ -271,7 +275,7 @@ func bindingAttributes(
         }
     }
 
-    return result.sorted(by: { $0.key < $1.key }).map({ $0.value })
+    return result
 }
 
 func filterContainerAttributes(
