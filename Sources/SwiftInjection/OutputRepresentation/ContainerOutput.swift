@@ -39,10 +39,61 @@ final class ContainerOutput {
         ) {
             // TODO: Add initializer
             // TODO: Add builder functions
+            for resolvedDependency in resolvedContainer.resolvedDependencies {
+                buildFunction(for: resolvedDependency)
+            }
             // TODO: Add lazy vars for the singletons
         }
 
         return DeclSyntax(classDeclaration)
+    }
+
+    private func buildFunctionName(for resolvedDependency: ResolvedDependency) -> String {
+        "build\(resolvedDependency.definition.bindingName.CamelCased)"
+    }
+
+    private func buildFunction(for resolvedDependency: ResolvedDependency) -> DeclSyntax {
+        let functionDeclaration = FunctionDeclSyntax(
+            leadingTrivia: .newlines(1) + .spaces(4),
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space) // TODO: Implement access control
+            },
+            funcKeyword: TokenSyntax(
+                .keyword(.func),
+                trailingTrivia: .space,
+                presence: .present
+            ),
+            name: .identifier(buildFunctionName(for: resolvedDependency)),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parameters: FunctionParameterListSyntax {
+                        for parameter in resolvedDependency.injectableClass.initializerDefinition.parameters {
+                            if case .parameter = parameter.kind {
+                                parameter.functionParameter
+                                    .with(\.leadingTrivia, .newline + .spaces(8))
+                            }
+                        }
+                    }
+                    .with(\.trailingTrivia, .newline + .spaces(4)),
+                    trailingTrivia: .space
+                ),
+                returnClause: ReturnClauseSyntax(
+                    type: IdentifierTypeSyntax(
+                        leadingTrivia: .space,
+                        name: TokenSyntax(
+                            .identifier(resolvedDependency.definition.bindingName),
+                            presence: .present
+                        )
+                    ),
+                    trailingTrivia: .space
+                )
+            )
+        ) {
+            // TODO: Add initialisation
+        }
+        .with(\.trailingTrivia, .newlines(1))
+
+        return DeclSyntax(functionDeclaration)
     }
 
     private func classes() -> [CodeBlockItemSyntax] {
