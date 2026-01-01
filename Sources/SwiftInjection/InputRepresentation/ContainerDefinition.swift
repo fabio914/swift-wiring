@@ -47,11 +47,13 @@ struct ContainerDefinition: CustomStringConvertible {
         dependencyMap.sorted(by: { $0.key < $1.key }).map({ $0.value })
     }
 
+    let imports: [ImportDeclSyntax]
     let protocolDeclaration: ProtocolDeclSyntax
     let sourceLocation: SourceLocation
 
     init?(
         converter: SourceLocationConverter,
+        imports: [ImportDeclSyntax],
         protocolDeclaration: ProtocolDeclSyntax
     ) throws {
         guard let containerName = try containerNameAttribute(converter: converter, item: protocolDeclaration) else {
@@ -61,6 +63,7 @@ struct ContainerDefinition: CustomStringConvertible {
         self.containerName = containerName
         self.containerProtocolName = protocolDeclaration.name.text
         self.dependencyMap = try bindingAttributes(converter: converter, item: protocolDeclaration)
+        self.imports = imports
         self.protocolDeclaration = protocolDeclaration
         self.sourceLocation = protocolDeclaration.startLocation(converter: converter)
     }
@@ -156,6 +159,8 @@ enum BindingAttributeError: Error {
     case invalidBindingAttribute
     case multipleBindingsFoundFor(String)
 }
+
+// TODO: Support named dependencies: @NamedBind(MyClass, MyProtocol, Name), @NamedSingletonBind(MyClass, MyProtocol, Name)
 
 ///
 /// Extracts Dependency attributes from a Protocol definition

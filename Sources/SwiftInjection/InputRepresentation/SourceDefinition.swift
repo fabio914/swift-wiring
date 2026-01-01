@@ -17,9 +17,14 @@ struct SourceDefinition: CustomStringConvertible {
         var injectableClasses: [InjectableClassDefinition] = []
         var filteredStatements: [CodeBlockItemSyntax] = []
 
+        let imports: [ImportDeclSyntax] = tree.statements.compactMap { item in
+            guard let importDeclaration = item.item.as(ImportDeclSyntax.self) else { return nil }
+            return importDeclaration
+        }
+
         try tree.statements.forEach { item in
             if let protocolDeclaration = item.item.as(ProtocolDeclSyntax.self) {
-                if let container = try ContainerDefinition(converter: sourceLocationConverter, protocolDeclaration: protocolDeclaration) {
+                if let container = try ContainerDefinition(converter: sourceLocationConverter, imports: imports, protocolDeclaration: protocolDeclaration) {
                     containers.append(container)
                     filteredStatements.append(item.with(\.item, .init(container.filteredProtocolDeclaration())))
                 } else {

@@ -12,8 +12,11 @@ struct SwiftInjection: ParsableCommand {
     @Option(name: .customShort("i"), help: "Input swift files")
     var inputFiles: [String]
 
-//    @Option(name: .customShort("o"), help: "Output directory")
+//    @Option(name: .customShort("o"), help: "Output directory for the filtered files")
 //    var outputDirectory: String
+
+//    @Option(name: .customLong("container"), help: "Container output file")
+//    var containerOutputFile: String
 
     func run() {
         let console = ConsoleOutput()

@@ -136,6 +136,8 @@ struct InitializerDependencyDefinition: CustomStringConvertible {
     }
 }
 
+// TODO: Implement named dependencies: @NamedDependency(Name)
+
 ///
 /// Detects a Dependency Annotation in a Function Parameter
 /// Example:
