@@ -27,11 +27,15 @@ struct SwiftInjection: ParsableCommand {
             }
 
             let resolvedContainers = try DependencyResolver(sources: sourceFiles).resolvedContainers
-            print(resolvedContainers)
 
             // TODO: Filter out source files and save to output
 
             // TODO: Output file with Container implementations
+
+            for resolvedContainer in resolvedContainers {
+                let containerOutput = ContainerOutput(resolvedContainer: resolvedContainer).generateSource()
+                print(containerOutput)
+            }
         } catch {
             console.fatalError(error)
         }

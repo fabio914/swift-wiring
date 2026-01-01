@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 @Container(MyContainer)
 @Bind(MyClass, SomeProtocol)
