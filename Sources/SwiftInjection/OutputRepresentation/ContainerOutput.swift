@@ -23,11 +23,7 @@ final class ContainerOutput {
             modifiers: DeclModifierListSyntax {
                 DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space) // TODO: Implement access control
             },
-            classKeyword: TokenSyntax(
-                .keyword(.class),
-                trailingTrivia: .space,
-                presence: .present
-            ),
+            classKeyword: .keyword(.class, trailingTrivia: .space),
             name: .identifier(resolvedContainer.containerDefinition.containerName),
             inheritanceClause: InheritanceClauseSyntax {
                 InheritedTypeSyntax(
@@ -80,18 +76,35 @@ final class ContainerOutput {
                 returnClause: ReturnClauseSyntax(
                     type: IdentifierTypeSyntax(
                         leadingTrivia: .space,
-                        name: TokenSyntax(
-                            .identifier(resolvedDependency.definition.bindingName),
-                            presence: .present
-                        )
+                        name: .identifier(resolvedDependency.definition.bindingName)
                     ),
                     trailingTrivia: .space
                 )
-            )
-        ) {
-            // TODO: Add initialisation
-        }
-        .with(\.trailingTrivia, .newlines(1))
+            ),
+            body: CodeBlockSyntax(
+                statements: CodeBlockItemListSyntax {
+                    CodeBlockItemSyntax(
+                        leadingTrivia: .newline + .spaces(8),
+                        item: .init(
+                            ReturnStmtSyntax(
+                                expression: FunctionCallExprSyntax(
+                                    leadingTrivia: .space,
+                                    calledExpression: DeclReferenceExprSyntax(
+                                        baseName: .identifier(resolvedDependency.injectableClass.className)
+                                    ),
+                                    leftParen: .leftParenToken(),
+                                    arguments: LabeledExprListSyntax { }, // TODO: Pass arguments
+                                    rightParen: .rightParenToken(leadingTrivia: .newline + .spaces(8))
+                                )
+                            )
+                        ),
+                        trailingTrivia: .newline
+                    )
+                },
+                rightBrace: .rightBraceToken(leadingTrivia: .spaces(4))
+            ),
+            trailingTrivia: .newlines(1)
+        )
 
         return DeclSyntax(functionDeclaration)
     }

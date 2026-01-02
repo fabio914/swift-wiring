@@ -87,12 +87,23 @@ struct InternalDependency: CustomStringConvertible {
     }
 }
 
+struct ContainerDependency: Hashable, CustomStringConvertible {
+    let containerName: String
+
+    var description: String {
+        "ContainerDependency(\(containerName))"
+    }
+}
+
 enum DependencyType: CustomStringConvertible {
+    case container(ContainerDependency)
     case external(ExternalDependency)
     case `internal`(InternalDependency)
 
     var description: String {
         switch self {
+        case .container(let containerDependency):
+            containerDependency.description
         case .external(let externalDependency):
             externalDependency.description
         case .internal(let internalDependency):
@@ -177,6 +188,11 @@ struct ResolvedContainer: CustomStringConvertible {
                     }
 
                     dependencyTypes[dependencyName] = .internal(definition)
+                } else if dependencyName == containerDefinition.containerName || dependencyName == containerDefinition.containerProtocolName {
+                    // Dependencies can be injected with the container itself.
+                    // However, they should avoid retaining the container strongly, or else this
+                    // can lead to retain cycles. Especially if this instance is a singleton within that container.
+                    dependencyTypes[dependencyName] = .container(ContainerDependency(containerName: dependencyName))
                 } else {
                     // Dependencies that aren't part of this container will be added to
                     // the external dependencies set and will be part of the container's
