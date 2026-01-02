@@ -89,8 +89,13 @@ final class ContainerOutput {
                         )
                     case .external(let externalDependency):
                         FunctionCallExprSyntax(
-                            calledExpression: DeclReferenceExprSyntax(
-                                baseName: .identifier(externalClosureNameFor(definition: externalDependency))
+                            calledExpression: MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(
+                                    baseName: .keyword(.self)
+                                ),
+                                declName: DeclReferenceExprSyntax(
+                                    baseName: .identifier(externalClosureNameFor(definition: externalDependency))
+                                )
                             ),
                             leftParen: .leftParenToken(),
                             arguments: LabeledExprListSyntax {},
@@ -100,16 +105,26 @@ final class ContainerOutput {
                         switch internalDependency.definition.kind {
                         case .build:
                             FunctionCallExprSyntax(
-                                calledExpression: DeclReferenceExprSyntax(
-                                    baseName: .identifier(buildFunctionNameFor(definition: internalDependency.definition))
+                                calledExpression: MemberAccessExprSyntax(
+                                    base: DeclReferenceExprSyntax(
+                                        baseName: .keyword(.self)
+                                    ),
+                                    declName: DeclReferenceExprSyntax(
+                                        baseName: .identifier(buildFunctionNameFor(definition: internalDependency.definition))
+                                    )
                                 ),
                                 leftParen: .leftParenToken(),
                                 arguments: LabeledExprListSyntax {},
                                 rightParen: .rightParenToken()
                             )
                         case .singleton:
-                            DeclReferenceExprSyntax(
-                                baseName: .identifier(singletonNameFor(definition: internalDependency.definition))
+                            MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(
+                                    baseName: .keyword(.self)
+                                ),
+                                declName: DeclReferenceExprSyntax(
+                                    baseName: .identifier(singletonNameFor(definition: internalDependency.definition))
+                                )
                             )
                         }
                     }
@@ -237,6 +252,38 @@ final class ContainerOutput {
         return DeclSyntax(variableDeclaration)
     }
 
+    // MARK: - External Dependencies
+
+    private func externalDependencyLet(for externalDependency: ExternalDependency) -> DeclSyntax {
+        let variableDeclaration = VariableDeclSyntax(
+            leadingTrivia: .newlines(1) + .spaces(4),
+            bindingSpecifier: .keyword(.let, trailingTrivia: .space),
+            bindings: PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(
+                        identifier: .identifier(externalClosureNameFor(definition: externalDependency))
+                    ),
+                    typeAnnotation: TypeAnnotationSyntax(
+                        type: FunctionTypeSyntax(
+                            leadingTrivia: .space,
+                            parameters: TupleTypeElementListSyntax {},
+                            returnClause: ReturnClauseSyntax(
+                                leadingTrivia: .space,
+                                type: IdentifierTypeSyntax(
+                                    leadingTrivia: .space,
+                                    name: .identifier(externalDependency.protocolName)
+                                )
+                            )
+                        )
+                    )
+                )
+            },
+            trailingTrivia: .newlines(1)
+        )
+
+        return DeclSyntax(variableDeclaration)
+    }
+
     // MARK: - Container Class
 
     private func containerClass() -> DeclSyntax {
@@ -254,14 +301,20 @@ final class ContainerOutput {
                 )
             }
         ) {
-            // TODO: Add initializer
-            for resolvedDependency in resolvedContainer.resolvedDependencies {
-                buildFunction(for: resolvedDependency)
+            for externalDependency in resolvedContainer.externalDependencies {
+                externalDependencyLet(for: externalDependency)
             }
+
             for resolvedDependency in resolvedContainer.resolvedDependencies {
                 if let lazyVar = singletonLazyVar(for: resolvedDependency) {
                     lazyVar
                 }
+            }
+
+            // TODO: Add initializer
+
+            for resolvedDependency in resolvedContainer.resolvedDependencies {
+                buildFunction(for: resolvedDependency)
             }
         }
 
