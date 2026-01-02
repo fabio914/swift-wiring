@@ -89,7 +89,7 @@ struct InitializerDefinition: CustomStringConvertible {
 struct ParameterDefinition: CustomStringConvertible {
     enum Kind {
         case dependency(InitializerDependencyDefinition)
-        case parameter
+        case parameter(String)
     }
 
     let kind: Kind
@@ -104,7 +104,7 @@ struct ParameterDefinition: CustomStringConvertible {
         if let dependency = try dependencyAttribute(converter: converter, item: functionParameter) {
             self.kind = .dependency(dependency)
         } else {
-            self.kind = .parameter
+            self.kind = .parameter(functionParameter.firstName.text)
         }
     }
 

@@ -34,7 +34,6 @@ final class ContainerOutput {
             }
         ) {
             // TODO: Add initializer
-            // TODO: Add builder functions
             for resolvedDependency in resolvedContainer.resolvedDependencies {
                 buildFunction(for: resolvedDependency)
             }
@@ -44,8 +43,16 @@ final class ContainerOutput {
         return DeclSyntax(classDeclaration)
     }
 
-    private func buildFunctionName(for resolvedDependency: ResolvedDependency) -> String {
-        "build\(resolvedDependency.definition.bindingName.CamelCased)"
+    private func buildFunctionNameFor(definition: DependencyDefinition) -> String {
+        "build\(definition.bindingName.CamelCased)"
+    }
+
+    private func singletonNameFor(definition: DependencyDefinition) -> String {
+        "singleton\(definition.bindingName.CamelCased)"
+    }
+
+    private func externalClosureNameFor(definition: ExternalDependency) -> String {
+        "external\(definition.protocolName.CamelCased)"
     }
 
     private func buildFunction(for resolvedDependency: ResolvedDependency) -> DeclSyntax {
@@ -54,18 +61,23 @@ final class ContainerOutput {
             modifiers: DeclModifierListSyntax {
                 DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space) // TODO: Implement access control
             },
-            funcKeyword: TokenSyntax(
-                .keyword(.func),
-                trailingTrivia: .space,
-                presence: .present
-            ),
-            name: .identifier(buildFunctionName(for: resolvedDependency)),
+            funcKeyword: .keyword(.func, trailingTrivia: .space),
+            name: .identifier(buildFunctionNameFor(definition: resolvedDependency.definition)),
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(
                     parameters: FunctionParameterListSyntax {
-                        for parameter in resolvedDependency.injectableClass.initializerDefinition.parameters {
+                        let parameters = resolvedDependency.injectableClass.initializerDefinition.parameters
+                            .filter { if case .parameter = $0.kind { true } else { false } }
+
+                        for i in 0 ..< parameters.count {
+                            let parameter = parameters[i]
+                            let isLast = (i == parameters.count - 1)
+
                             if case .parameter = parameter.kind {
                                 parameter.functionParameter
+                                    .with(\.firstName, parameter.functionParameter.firstName.with(\.trailingTrivia, .spaces(0)))
+                                    .with(\.secondName, nil)
+                                    .with(\.trailingComma, isLast ? nil : .commaToken())
                                     .with(\.leadingTrivia, .newline + .spaces(8))
                             }
                         }
@@ -93,7 +105,85 @@ final class ContainerOutput {
                                         baseName: .identifier(resolvedDependency.injectableClass.className)
                                     ),
                                     leftParen: .leftParenToken(),
-                                    arguments: LabeledExprListSyntax { }, // TODO: Pass arguments
+                                    arguments: LabeledExprListSyntax {
+                                        let parameters = resolvedDependency.injectableClass.initializerDefinition.parameters
+
+                                        for i in 0 ..< parameters.count {
+                                            let parameter = parameters[i]
+                                            let isLast = (i == parameters.count - 1)
+
+                                            switch parameter.kind {
+                                            case .dependency(let dependencyDefinition):
+                                                if let dependency = resolvedDependency.dependencies[dependencyDefinition.type] {
+                                                    switch dependency {
+                                                    case .container:
+                                                        LabeledExprSyntax(
+                                                            leadingTrivia: .newline + .spaces(12),
+                                                            label: .identifier(dependencyDefinition.parameterName),
+                                                            colon: .colonToken(trailingTrivia: .space),
+                                                            expression: DeclReferenceExprSyntax(
+                                                                baseName: .keyword(.self)
+                                                            ),
+                                                            trailingComma: isLast ? nil : .commaToken()
+                                                        )
+                                                    case .external(let externalDependency):
+                                                        LabeledExprSyntax(
+                                                            leadingTrivia: .newline + .spaces(12),
+                                                            label: .identifier(dependencyDefinition.parameterName),
+                                                            colon: .colonToken(trailingTrivia: .space),
+                                                            expression: FunctionCallExprSyntax(
+                                                                calledExpression: DeclReferenceExprSyntax(
+                                                                    baseName: .identifier(externalClosureNameFor(definition: externalDependency))
+                                                                ),
+                                                                leftParen: .leftParenToken(),
+                                                                arguments: LabeledExprListSyntax {},
+                                                                rightParen: .rightParenToken()
+                                                            ),
+                                                            trailingComma: isLast ? nil : .commaToken()
+                                                        )
+                                                    case .internal(let internalDependency):
+                                                        switch internalDependency.definition.kind {
+                                                        case .build:
+                                                            LabeledExprSyntax(
+                                                                leadingTrivia: .newline + .spaces(12),
+                                                                label: .identifier(dependencyDefinition.parameterName),
+                                                                colon: .colonToken(trailingTrivia: .space),
+                                                                expression: FunctionCallExprSyntax(
+                                                                    calledExpression: DeclReferenceExprSyntax(
+                                                                        baseName: .identifier(buildFunctionNameFor(definition: internalDependency.definition))
+                                                                    ),
+                                                                    leftParen: .leftParenToken(),
+                                                                    arguments: LabeledExprListSyntax {},
+                                                                    rightParen: .rightParenToken()
+                                                                ),
+                                                                trailingComma: isLast ? nil : .commaToken()
+                                                            )
+                                                        case .singleton:
+                                                            LabeledExprSyntax(
+                                                                leadingTrivia: .newline + .spaces(12),
+                                                                label: .identifier(dependencyDefinition.parameterName),
+                                                                colon: .colonToken(trailingTrivia: .space),
+                                                                expression: DeclReferenceExprSyntax(
+                                                                    baseName: .identifier(singletonNameFor(definition: internalDependency.definition))
+                                                                ),
+                                                                trailingComma: isLast ? nil : .commaToken()
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            case .parameter(let parameterName):
+                                                LabeledExprSyntax(
+                                                    leadingTrivia: .newline + .spaces(12),
+                                                    label: .identifier(parameterName),
+                                                    colon: .colonToken(trailingTrivia: .space),
+                                                    expression: DeclReferenceExprSyntax(
+                                                        baseName: .identifier(parameterName)
+                                                    ),
+                                                    trailingComma: isLast ? nil : .commaToken()
+                                                )
+                                            }
+                                        }
+                                    },
                                     rightParen: .rightParenToken(leadingTrivia: .newline + .spaces(8))
                                 )
                             )

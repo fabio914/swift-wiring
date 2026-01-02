@@ -6,28 +6,33 @@ import SwiftUI
 @SingletonBind(MySingleton, SomeOtherProtocol)
 @Singleton(AnotherSingleton)
 @Instance(SomeInstance)
+@Instance(SomeInstanceWithoutParameters)
 protocol MyContainerProtocol {
 }
 
 @Inject
 final class MyClass: SomeProtocol {
 
+    let instance: SomeInstanceWithoutParameters
     let someDependency: SomeDependency
     let anotherDependency: AnotherDependency
     let singleton: SomeOtherProtocol
     let parameter: Int
 
     init(
+        @Dependency instance: SomeInstanceWithoutParameters,
         @Dependency someDependency: SomeDependency,
         @Dependency anotherDependency: AnotherDependency,
         @Dependency singleton: SomeOtherProtocol,
-        parameter: Int,
-        otherParameter: Array<Int>
+        parameter value: Int,
+        otherParameter: Array<Int>,
+        @Dependency container: MyContainerProtocol
     ) {
+        self.instance = instance
         self.someDependency = someDependency
         self.anotherDependency = anotherDependency
         self.singleton = singleton
-        self.parameter = parameter
+        self.parameter = value
     }
 
     func someFunction() -> Int {
@@ -73,6 +78,20 @@ class SomeInstance {
     ) {
         self.firstSingleton = firstSingleton
         self.parameter = parameter
+    }
+}
+
+@Inject
+class SomeInstanceWithoutParameters {
+    let firstSingleton: SomeOtherProtocol
+    let anotherSingleton: AnotherSingleton
+
+    init(
+        @Dependency firstSingleton: SomeOtherProtocol,
+        @Dependency anotherSingleton: AnotherSingleton
+    ) {
+        self.firstSingleton = firstSingleton
+        self.anotherSingleton = anotherSingleton
     }
 }
 
