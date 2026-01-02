@@ -185,6 +185,58 @@ final class ContainerOutput {
         return DeclSyntax(functionDeclaration)
     }
 
+    // MARK: - Singletons
+
+    private func singletonLazyVar(for resolvedDependency: ResolvedDependency) -> DeclSyntax? {
+        guard case .singleton = resolvedDependency.definition.kind else {
+            return nil
+        }
+
+        let variableDeclaration = VariableDeclSyntax(
+            leadingTrivia: .newlines(1) + .spaces(4),
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(
+                    name: .keyword(.private),
+                    detail: DeclModifierDetailSyntax(detail: .keyword(.set)),
+                    trailingTrivia: .space
+                )
+                DeclModifierSyntax(
+                    name: .keyword(.lazy),
+                    trailingTrivia: .space
+                )
+            },
+            bindingSpecifier: .keyword(.var, trailingTrivia: .space),
+            bindings: PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(
+                        identifier: .identifier(singletonNameFor(definition: resolvedDependency.definition))
+                    ),
+                    typeAnnotation: TypeAnnotationSyntax(
+                        type: IdentifierTypeSyntax(
+                            leadingTrivia: .space,
+                            name: .identifier(resolvedDependency.definition.bindingName),
+                            trailingTrivia: .space
+                        )
+                    ),
+                    initializer: InitializerClauseSyntax(
+                        value: FunctionCallExprSyntax(
+                            leadingTrivia: .space,
+                            calledExpression: DeclReferenceExprSyntax(
+                                baseName: .identifier(buildFunctionNameFor(definition: resolvedDependency.definition))
+                            ),
+                            leftParen: .leftParenToken(),
+                            arguments: LabeledExprListSyntax {},
+                            rightParen: .rightParenToken()
+                        )
+                    )
+                )
+            },
+            trailingTrivia: .newlines(1)
+        )
+
+        return DeclSyntax(variableDeclaration)
+    }
+
     // MARK: - Container Class
 
     private func containerClass() -> DeclSyntax {
@@ -206,7 +258,11 @@ final class ContainerOutput {
             for resolvedDependency in resolvedContainer.resolvedDependencies {
                 buildFunction(for: resolvedDependency)
             }
-            // TODO: Add lazy vars for the singletons
+            for resolvedDependency in resolvedContainer.resolvedDependencies {
+                if let lazyVar = singletonLazyVar(for: resolvedDependency) {
+                    lazyVar
+                }
+            }
         }
 
         return DeclSyntax(classDeclaration)
