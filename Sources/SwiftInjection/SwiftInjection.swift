@@ -30,11 +30,20 @@ struct SwiftInjection: ParsableCommand {
 
             // TODO: Filter out source files and save to output
 
+            for sourceFile in sourceFiles {
+                print("// \(sourceFile.fileName) \n")
+                print(sourceFile.filteredSource())
+                print("")
+            }
+
             // TODO: Output file with Container implementations
 
             for resolvedContainer in resolvedContainers {
                 let containerOutput = ContainerOutput(resolvedContainer: resolvedContainer).generateSource()
+                
+                print("// \(resolvedContainer.containerDefinition.containerName).swift \n")
                 print(containerOutput)
+                print("")
             }
         } catch {
             console.fatalError(error)

@@ -63,7 +63,7 @@ class AnotherSingleton {
     init(
         @Dependency firstSingleton: SomeOtherProtocol
     ) {
-        self.someDependency = someDependency
+        self.firstSingleton = firstSingleton
     }
 }
 
@@ -107,3 +107,6 @@ protocol SomeDependency {
 
 }
 
+protocol AnotherDependency {
+
+}
