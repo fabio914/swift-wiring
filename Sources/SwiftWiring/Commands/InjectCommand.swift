@@ -1,14 +1,15 @@
-import ArgumentParser
 import Foundation
+import ArgumentParser
 import SwiftSyntax
 import SwiftParser
 
-enum SwiftInjectionError: Error {
-    case failedToReadFile(String, Error)
-}
+struct InjectCommand: ParsableCommand {
 
-@main
-struct SwiftInjection: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "inject",
+        abstract: "Use this command to generate Swift files with Container implementations"
+    )
+
     @Option(name: .customShort("i"), help: "Input swift files")
     var inputFiles: [String]
 
@@ -23,40 +24,24 @@ struct SwiftInjection: ParsableCommand {
 
         do {
             let sourceFiles = try inputFiles.map { fileName in
-                try SourceDefinition(fileName: fileName, tree: try parse(file: fileName))
+                try SourceDefinition(fileName: fileName, tree: try SourceFileReader.parse(file: fileName))
             }
 
             let resolvedContainers = try DependencyResolver(sources: sourceFiles).resolvedContainers
 
-            // TODO: Filter out source files and save to output
-
-            for sourceFile in sourceFiles {
-                print("// \(sourceFile.fileName) \n")
-                print(sourceFile.filteredSource())
-                print("")
-            }
-
             // TODO: Output file with Container implementations
+
+            // TODO: Combine Containers
 
             for resolvedContainer in resolvedContainers {
                 let containerOutput = ContainerOutput(resolvedContainer: resolvedContainer).generateSource()
-                
+
                 print("// \(resolvedContainer.containerDefinition.containerName).swift \n")
                 print(containerOutput)
                 print("")
             }
         } catch {
             console.fatalError(error)
-        }
-    }
-
-    func parse(file: String) throws -> SourceFileSyntax {
-        do {
-            let url = URL(fileURLWithPath: file)
-            let source = try String(contentsOf: url, encoding: .utf8)
-            return Parser.parse(source: source)
-        } catch {
-            throw SwiftInjectionError.failedToReadFile(file, error)
         }
     }
 }

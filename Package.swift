@@ -3,15 +3,18 @@
 import PackageDescription
 
 let package = Package(
-    name: "swift-injection",
+    name: "swift-wiring",
     platforms: [.macOS(.v10_15)],
+    products: [
+        .executable(name: "swift-wiring", targets: ["SwiftWiring"])
+    ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.7.0"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0")
     ],
     targets: [
         .executableTarget(
-            name: "SwiftInjection",
+            name: "SwiftWiring",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "SwiftParser", package: "swift-syntax"),

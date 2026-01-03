@@ -1,0 +1,57 @@
+name: InjectionExample
+
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+  configs:
+    Release:
+      SWIFT_COMPILATION_MODE: 'wholemodule'
+
+options:
+  bundleIdPrefix: com.injection
+  xcodeVersion: 16.3
+  usesTabs: false
+  indentWidth: 4
+  deploymentTarget:
+    iOS: 18.4
+
+targets:
+  InjectionExample:
+    type: application
+    platform: iOS
+    settings:
+      base:
+        DISPLAY_NAME: "InjectionExample"
+    info:
+      path: InjectionExample/Info.plist
+      properties:
+        UISupportedInterfaceOrientations: 
+          - UIInterfaceOrientationPortrait
+        UILaunchStoryboardName: LaunchScreen
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+          NSAllowsArbitraryLoadsInWebContent: true
+        ITSAppUsesNonExemptEncryption: false
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: "Default Configuration"
+                UISceneDelegateClassName: "$(PRODUCT_MODULE_NAME).SceneDelegate"
+    sources:
+      - path: README.md
+        buildPhase: none
+      - path: InjectionExample
+        buildPhase: sources
+        createIntermediateGroups: true
+        excludes:
+          - Info.plist
+    buildRules:
+      - name: Filtering
+        filePattern: "*.swift.wire"
+        script: |
+                export PATH=$PATH:${SRCROOT}/../.build/release/
+                cd ${DERIVED_FILE_DIR}
+                swift-wiring filter -i ${INPUT_FILE_PATH} -o ${INPUT_FILE_BASE}
+        outputFiles:
+          - $(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE)
