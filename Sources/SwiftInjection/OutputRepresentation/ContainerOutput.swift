@@ -152,18 +152,12 @@ final class ContainerOutput {
             ),
             leftParen: .leftParenToken(),
             arguments: LabeledExprListSyntax {
-                let arguments = makeInitializerArguments(for: resolvedDependency)
-
-                for i in 0 ..< arguments.count {
-                    let argument = arguments[i]
-                    let isLast = (i == arguments.count - 1)
-
+                for argument in makeInitializerArguments(for: resolvedDependency) {
                     LabeledExprSyntax(
                         leadingTrivia: .newline + .spaces(12),
                         label: .identifier(argument.label),
                         colon: .colonToken(trailingTrivia: .space),
-                        expression: argument.expression,
-                        trailingComma: isLast ? nil : .commaToken()
+                        expression: argument.expression
                     )
                 }
             },
@@ -173,7 +167,7 @@ final class ContainerOutput {
 
     private func buildFunction(for resolvedDependency: ResolvedDependency) -> DeclSyntax {
         let functionDeclaration = FunctionDeclSyntax(
-            leadingTrivia: .newlines(1) + .spaces(4),
+            leadingTrivia: .newline + .spaces(4),
             modifiers: DeclModifierListSyntax {
                 DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space) // TODO: Implement access control
             },
@@ -194,7 +188,7 @@ final class ContainerOutput {
                 },
                 rightBrace: .rightBraceToken(leadingTrivia: .spaces(4))
             ),
-            trailingTrivia: .newlines(1)
+            trailingTrivia: .newline
         )
 
         return DeclSyntax(functionDeclaration)
@@ -208,7 +202,7 @@ final class ContainerOutput {
         }
 
         let variableDeclaration = VariableDeclSyntax(
-            leadingTrivia: .newlines(1) + .spaces(4),
+            leadingTrivia: .newline + .spaces(4),
             modifiers: DeclModifierListSyntax {
                 DeclModifierSyntax(
                     name: .keyword(.private),
@@ -246,7 +240,7 @@ final class ContainerOutput {
                     )
                 )
             },
-            trailingTrivia: .newlines(1)
+            trailingTrivia: .newline
         )
 
         return DeclSyntax(variableDeclaration)
@@ -254,9 +248,23 @@ final class ContainerOutput {
 
     // MARK: - External Dependencies
 
+    private func typeFor(externalDependency: ExternalDependency) -> FunctionTypeSyntax {
+        FunctionTypeSyntax(
+            leadingTrivia: .space,
+            parameters: TupleTypeElementListSyntax {},
+            returnClause: ReturnClauseSyntax(
+                leadingTrivia: .space,
+                type: IdentifierTypeSyntax(
+                    leadingTrivia: .space,
+                    name: .identifier(externalDependency.protocolName)
+                )
+            )
+        )
+    }
+
     private func externalDependencyLet(for externalDependency: ExternalDependency) -> DeclSyntax {
         let variableDeclaration = VariableDeclSyntax(
-            leadingTrivia: .newlines(1) + .spaces(4),
+            leadingTrivia: .newline + .spaces(4),
             bindingSpecifier: .keyword(.let, trailingTrivia: .space),
             bindings: PatternBindingListSyntax {
                 PatternBindingSyntax(
@@ -264,24 +272,61 @@ final class ContainerOutput {
                         identifier: .identifier(externalClosureNameFor(definition: externalDependency))
                     ),
                     typeAnnotation: TypeAnnotationSyntax(
-                        type: FunctionTypeSyntax(
-                            leadingTrivia: .space,
-                            parameters: TupleTypeElementListSyntax {},
-                            returnClause: ReturnClauseSyntax(
-                                leadingTrivia: .space,
-                                type: IdentifierTypeSyntax(
-                                    leadingTrivia: .space,
-                                    name: .identifier(externalDependency.protocolName)
-                                )
-                            )
-                        )
+                        type: typeFor(externalDependency: externalDependency)
                     )
                 )
             },
-            trailingTrivia: .newlines(1)
+            trailingTrivia: .newline
         )
 
         return DeclSyntax(variableDeclaration)
+    }
+
+    // MARK: - Initializer
+
+    private func initializer() -> DeclSyntax {
+        let initializerDeclaration = InitializerDeclSyntax(
+            leadingTrivia: .newline + .spaces(4),
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(
+                    name: .keyword(.public),
+                    trailingTrivia: .space
+                )
+            },
+            initKeyword: .keyword(.`init`),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parameters: FunctionParameterListSyntax {
+                        for externalDependency in resolvedContainer.externalDependencies {
+                            FunctionParameterSyntax(
+                                leadingTrivia: .newline + .spaces(8),
+                                firstName: .identifier(externalDependency.protocolName.camelCased),
+                                type: AttributedTypeSyntax(
+                                    specifiers: TypeSpecifierListSyntax {},
+                                    attributes: AttributeListSyntax {
+                                        AttributeSyntax(
+                                            leadingTrivia: .space,
+                                            attributeName: IdentifierTypeSyntax(name: .identifier("autoclosure"))
+                                        )
+                                        AttributeSyntax(
+                                            leadingTrivia: .space,
+                                            attributeName: IdentifierTypeSyntax(name: .identifier("escaping"))
+                                        )
+                                    },
+                                    baseType: typeFor(externalDependency: externalDependency)
+                                )
+                            )
+                        }
+                    }
+                    .with(\.trailingTrivia, .newline + .spaces(4)),
+                    trailingTrivia: .space
+                )
+            ),
+//            body: CodeBlockSyntax(),
+            trailingTrivia: .newline
+        )
+
+        return DeclSyntax(initializerDeclaration)
     }
 
     // MARK: - Container Class
@@ -311,7 +356,7 @@ final class ContainerOutput {
                 }
             }
 
-            // TODO: Add initializer
+            initializer()
 
             for resolvedDependency in resolvedContainer.resolvedDependencies {
                 buildFunction(for: resolvedDependency)
@@ -326,7 +371,7 @@ final class ContainerOutput {
             CodeBlockItemSyntax(
                 leadingTrivia: .newlines(2),
                 item: .init(containerClass()),
-                trailingTrivia: .newlines(1)
+                trailingTrivia: .newline
             )
         ]
     }
