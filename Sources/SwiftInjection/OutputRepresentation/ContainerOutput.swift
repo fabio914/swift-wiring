@@ -284,7 +284,11 @@ final class ContainerOutput {
 
     // MARK: - Initializer
 
-    private func initializer() -> DeclSyntax {
+    private func parameterNameFor(externalDependency: ExternalDependency) -> String {
+        externalDependency.protocolName.camelCased
+    }
+
+    private func initializer(with externalDependencies: [ExternalDependency]) -> DeclSyntax {
         let initializerDeclaration = InitializerDeclSyntax(
             leadingTrivia: .newline + .spaces(4),
             modifiers: DeclModifierListSyntax {
@@ -297,10 +301,10 @@ final class ContainerOutput {
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(
                     parameters: FunctionParameterListSyntax {
-                        for externalDependency in resolvedContainer.externalDependencies {
+                        for externalDependency in externalDependencies {
                             FunctionParameterSyntax(
                                 leadingTrivia: .newline + .spaces(8),
-                                firstName: .identifier(externalDependency.protocolName.camelCased),
+                                firstName: .identifier(parameterNameFor(externalDependency: externalDependency)),
                                 type: AttributedTypeSyntax(
                                     specifiers: TypeSpecifierListSyntax {},
                                     attributes: AttributeListSyntax {
@@ -322,7 +326,35 @@ final class ContainerOutput {
                     trailingTrivia: .space
                 )
             ),
-//            body: CodeBlockSyntax(),
+            body: CodeBlockSyntax(
+                statements: CodeBlockItemListSyntax {
+                    for externalDependency in externalDependencies {
+                        CodeBlockItemSyntax(
+                            item: .init(
+                                InfixOperatorExprSyntax(
+                                    leadingTrivia: .newline + .spaces(8),
+                                    leftOperand: MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .keyword(.self)
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier(externalClosureNameFor(definition: externalDependency))
+                                        )
+                                    ),
+                                    operator: AssignmentExprSyntax(
+                                        leadingTrivia: .space,
+                                        trailingTrivia: .space
+                                    ),
+                                    rightOperand: DeclReferenceExprSyntax(
+                                        baseName: .identifier(parameterNameFor(externalDependency: externalDependency))
+                                    )
+                                )
+                            )
+                        )
+                    }
+                }
+                .with(\.trailingTrivia, .newline + .spaces(4))
+            ),
             trailingTrivia: .newline
         )
 
@@ -335,6 +367,7 @@ final class ContainerOutput {
         let classDeclaration = ClassDeclSyntax(
             modifiers: DeclModifierListSyntax {
                 DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space) // TODO: Implement access control
+                DeclModifierSyntax(name: .keyword(.final), trailingTrivia: .space)
             },
             classKeyword: .keyword(.class, trailingTrivia: .space),
             name: .identifier(resolvedContainer.containerDefinition.containerName),
@@ -356,7 +389,7 @@ final class ContainerOutput {
                 }
             }
 
-            initializer()
+            initializer(with: resolvedContainer.externalDependencies)
 
             for resolvedDependency in resolvedContainer.resolvedDependencies {
                 buildFunction(for: resolvedDependency)
