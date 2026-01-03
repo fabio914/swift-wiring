@@ -28,3 +28,13 @@ final class TestClass: TestProtocol {
         print("Something")
     }
 }
+
+@Inject
+final class SomethingElse: TestProtocol {
+
+    init() {}
+
+    func printSomething() {
+        print("SomethingElse")
+    }
+}

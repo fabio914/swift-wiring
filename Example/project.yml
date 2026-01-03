@@ -48,10 +48,9 @@ targets:
           - Info.plist
     buildRules:
       - name: Filtering
-        filePattern: "*.swift.wire"
+        filePattern: "*.wire.swift"
         script: |
                 export PATH=$PATH:${SRCROOT}/../.build/release/
-                cd ${DERIVED_FILE_DIR}
-                swift-wiring filter -i ${INPUT_FILE_PATH} -o ${INPUT_FILE_BASE}
+                swift-wiring filter -i ${INPUT_FILE_PATH} -o ${SCRIPT_OUTPUT_FILE_0}
         outputFiles:
-          - $(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE)
+          - $(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).filtered.swift
