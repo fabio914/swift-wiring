@@ -10,14 +10,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
-        // TODO: Remove this test
-        let mainContainer = MainContainer()
-        mainContainer.buildTestClass(parameter: 5).printSomething()
-
         window = UIWindow(windowScene: windowScene)
-        let viewModel = InitialViewModel()
-        let viewController = InitialScreen.makeViewController(viewModel: viewModel)
-        window?.rootViewController = viewController
+        let appContainer = AppContainer()
+        window?.rootViewController = appContainer.buildInitialCoordinator().instantiateRoot()
         window?.makeKeyAndVisible()
     }
 
