@@ -19,7 +19,8 @@ final class TestClass: TestProtocol {
     let dependency: SomeDependency
 
     init(
-        @Dependency dependency: SomeDependency
+        @Dependency dependency: SomeDependency,
+        parameter: Int
     ) {
         self.dependency = dependency
     }

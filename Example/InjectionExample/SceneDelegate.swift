@@ -11,8 +11,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
         // TODO: Remove this test
-        let testClass = TestClass(dependency: Dependency())
-        testClass.printSomething()
+        let mainContainer = MainContainer()
+        mainContainer.buildTestClass(parameter: 5).printSomething()
 
         window = UIWindow(windowScene: windowScene)
         let viewModel = InitialViewModel()

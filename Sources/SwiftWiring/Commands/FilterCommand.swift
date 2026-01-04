@@ -10,10 +10,10 @@ struct FilterCommand: ParsableCommand {
         abstract: "Use this command to output your Swift files without the swift-wiring annotations"
     )
 
-    @Option(name: .customShort("i"), help: "Input swift file")
+    @Option(name: .customShort("i"), help: "Input Swift file")
     var inputFile: String
 
-    @Option(name: .customShort("o"), help: "Output swift file")
+    @Option(name: .customShort("o"), help: "Output Swift file")
     var outputFile: String
 
     func run() {

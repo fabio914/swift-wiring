@@ -46,6 +46,14 @@ targets:
         createIntermediateGroups: true
         excludes:
           - Info.plist
+    preBuildScripts:
+      - name: Injection
+        basedOnDependencyAnalysis: false
+        script: |
+                export PATH=$PATH:${SRCROOT}/../.build/release/
+                swift-wiring inject `find ${SRCROOT} -name "*.wire.swift" | tr '\n' ' '` -o ${SCRIPT_OUTPUT_FILE_0}
+        outputFiles:
+          - $(SRCROOT)/InjectionExample/Generated/Containers.generated.swift
     buildRules:
       - name: Filtering
         filePattern: "*.wire.swift"
