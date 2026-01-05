@@ -76,3 +76,67 @@ internal final class AppContainer: AppContainerProtocol {
         )
     }
 }
+
+
+import UIKit
+
+internal final class MainContainer: MainContainerProtocol {
+    let externalLoggerProtocol: () -> LoggerProtocol
+
+    let externalSession: () -> Session
+
+    let externalSessionManagerProtocol: () -> SessionManagerProtocol
+
+    let externalUser: () -> User
+
+    public init(
+        loggerProtocol: @autoclosure @escaping () -> LoggerProtocol,
+        session: @autoclosure @escaping () -> Session,
+        sessionManagerProtocol: @autoclosure @escaping () -> SessionManagerProtocol,
+        user: @autoclosure @escaping () -> User
+    ) {
+        self.externalLoggerProtocol = loggerProtocol
+        self.externalSession = session
+        self.externalSessionManagerProtocol = sessionManagerProtocol
+        self.externalUser = user
+    }
+
+    internal func buildMainCoordinator() -> MainCoordinator {
+        return MainCoordinator(
+            mainContainer: self
+        )
+    }
+
+    internal func buildSettingsCoordinator() -> SettingsCoordinator {
+        return SettingsCoordinator(
+            mainContainer: self
+        )
+    }
+
+    internal func buildSettingsViewModel(
+        coordinator: SettingsCoordinatorProtocol
+    ) -> SettingsViewModel {
+        return SettingsViewModel(
+            session: self.externalSession(),
+            sessionManager: self.externalSessionManagerProtocol(),
+            logger: self.externalLoggerProtocol(),
+            coordinator: coordinator
+        )
+    }
+
+    internal func buildUserCoordinator() -> UserCoordinator {
+        return UserCoordinator(
+            mainContainer: self
+        )
+    }
+
+    internal func buildUserViewModel(
+        coordinator: UserCoordinatorProtocol
+    ) -> UserViewModel {
+        return UserViewModel(
+            user: self.externalUser(),
+            logger: self.externalLoggerProtocol(),
+            coordinator: coordinator
+        )
+    }
+}

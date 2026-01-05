@@ -26,6 +26,12 @@ protocol SessionManagerProtocol: AnyObject {
 
 struct Session: Codable {
     let sessionToken: String
+    let time: Date
+
+    init(sessionToken: String, time: Date = Date()) {
+        self.sessionToken = sessionToken
+        self.time = time
+    }
 }
 
 struct User: Codable {

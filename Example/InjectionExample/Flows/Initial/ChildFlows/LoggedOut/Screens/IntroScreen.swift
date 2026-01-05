@@ -22,7 +22,7 @@ struct IntroScreen<ViewModel: IntroViewModelProtocol>: View {
             Image(systemName: "app.connected.to.app.below.fill")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 100, height: 200)
+                .frame(width: 100, height: 100)
 
             Text("Swift Wiring Demo")
                 .font(.headline)

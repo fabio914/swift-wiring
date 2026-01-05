@@ -1,5 +1,7 @@
 import UIKit
 
+// This container has the base dependencies (that are available
+// whether or not the app has a session)
 @Container(AppContainer)
 
 // Tools

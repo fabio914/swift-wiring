@@ -40,7 +40,7 @@ struct LoginScreen<ViewModel: LoginViewModelProtocol>: View {
             Image(systemName: "person.circle")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 100, height: 200)
+                .frame(width: 100, height: 100)
 
             TextField(text: $usernameText) {
                 Text("Enter User Name")
@@ -59,7 +59,7 @@ struct LoginScreen<ViewModel: LoginViewModelProtocol>: View {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 100, height: 200)
+                .frame(width: 100, height: 100)
 
             Text("Error")
                 .font(.headline)
@@ -97,7 +97,7 @@ struct LoginScreen<ViewModel: LoginViewModelProtocol>: View {
     var body: some View {
         content
             .navigationTitle("Login")
-            .navigationBarBackButtonHidden(!backButtonHidden)
+            .navigationBarBackButtonHidden(backButtonHidden)
             .onDisappear(perform: viewModel.onDisappear)
     }
 }
