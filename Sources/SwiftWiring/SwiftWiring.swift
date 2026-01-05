@@ -8,7 +8,8 @@ struct SwiftWiring: ParsableCommand {
         abstract: "swift-wiring is a tool to autogenerate dependency injection code for your Swift projects",
         subcommands: [
             InjectCommand.self,
-            FilterCommand.self
+            FilterCommand.self,
+            TestCommand.self
         ]
     )
 
