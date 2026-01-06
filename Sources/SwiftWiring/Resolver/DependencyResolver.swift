@@ -1,9 +1,5 @@
 import Foundation
 
-typealias BindingName = String // Protocol or the Class own name
-typealias ClassName = String
-typealias ContainerName = String
-
 enum InjectableClassCollectionError: Error {
     case classWithThisNameAlreadyExists(String)
 }

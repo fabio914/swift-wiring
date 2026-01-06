@@ -46,24 +46,18 @@ struct TestCommand: ParsableCommand {
             }
             """
 
-        let tag = "wiring:"
         var tree = Parser.parse(source: source)
 
         let protocolDefinition = tree.statements.remove(at: tree.statements.index(at: 0))
-        let protocolDefinitionLeadingTrivia = protocolDefinition.item.leadingTrivia
-        let protocolComments = protocolDefinitionLeadingTrivia.allComments
-        let protocolCommands = try CommandParser.parse(protocolComments, tag: tag)
+        let protocolCommands = try protocolDefinition.item.leadingTrivia.wiringCommand()
         print(protocolCommands)
 
         let classDefinition = tree.statements.remove(at: tree.statements.index(at: 0))
-        let classDefinitionLeadingTrivia = classDefinition.item.leadingTrivia
-        let classComments = classDefinitionLeadingTrivia.allComments
-        let classCommands = try CommandParser.parse(classComments, tag: tag)
+        let classCommands = try classDefinition.item.leadingTrivia.wiringCommand()
         print(classCommands)
 
         try classDefinition.item.as(ClassDeclSyntax.self)?.memberBlock.members.first?.decl.as(InitializerDeclSyntax.self)?.signature.parameterClause.parameters.forEach {
-            let initializerComment = $0.leadingTrivia.allComments
-            let initializerCommand = try CommandParser.parse(initializerComment, tag: tag)
+            let initializerCommand = try $0.leadingTrivia.wiringCommand()
             print(initializerCommand)
         }
     }

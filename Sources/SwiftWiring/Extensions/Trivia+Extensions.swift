@@ -34,4 +34,8 @@ extension Trivia {
             .map({ $0.rawComment })
             .joined(separator: "\n")
     }
+
+    func wiringCommand() throws -> WiringCommand {
+        try WiringCommandResolver.resolve(allComments)
+    }
 }
