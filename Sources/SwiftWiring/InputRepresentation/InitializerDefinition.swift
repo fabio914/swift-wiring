@@ -74,13 +74,6 @@ struct InitializerDefinition: CustomStringConvertible {
         }) != nil
     }
 
-    func filteredInitializerDeclaration() -> InitializerDeclSyntax {
-        initializerDeclaration.with(
-            \.signature.parameterClause.parameters,
-            .init(parameters.map { $0.filteredFunctionParameterDefinition() })
-        )
-    }
-
     var description: String {
         "InitializerDefinition(\(parameters))"
     }
@@ -106,10 +99,6 @@ struct ParameterDefinition: CustomStringConvertible {
         } else {
             self.kind = .parameter(functionParameter.firstName.text)
         }
-    }
-
-    func filteredFunctionParameterDefinition() -> FunctionParameterSyntax {
-        filterDependencyAttribute(from: functionParameter)
     }
 
     var description: String {
@@ -207,22 +196,5 @@ func dependencyAttribute(
     return InitializerDependencyDefinition(
         parameterName: item.firstName.text,
         type: identifier.name.text
-    )
-}
-
-func filterDependencyAttribute(
-    from item: FunctionParameterSyntax
-) -> FunctionParameterSyntax {
-    item.with(
-        \.attributes,
-        item.attributes.filter { element in
-            if let attribute = element.as(AttributeSyntax.self),
-                let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self),
-                  identifier.name.text == "Dependency" {
-                return false
-            }
-
-            return true
-        }
     )
 }

@@ -77,7 +77,10 @@ enum ContainerCommandError: Error {
     case expectedContainerCommand
 }
 
-func containerCommand(
+///
+/// Extracts `wiring: container(...) { ... }` command
+///
+private func containerCommand(
     converter: SourceLocationConverter,
     item: ProtocolDeclSyntax
 ) throws -> (ContainerName, [WiringCommand.ContainerCommand])? {
@@ -92,7 +95,6 @@ func containerCommand(
         default:
             throw ContainerCommandError.expectedContainerCommand
         }
-
     } catch {
         throw InputFileError(
             location: item.startLocation(converter: converter),
@@ -106,7 +108,7 @@ enum BindingError: Error {
     case multipleBindingsFoundFor(String)
 }
 
-func bindings(
+private func bindings(
     sourceLocation: SourceLocation,
     commands: [WiringCommand.ContainerCommand]
 ) throws -> [BindingName: DependencyDefinition] {

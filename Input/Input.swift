@@ -12,7 +12,6 @@ protocol MyContainerProtocol {
 }
 
 // wiring: inject
-@Inject
 final class MyClass: SomeProtocol {
 
     let instance: SomeInstanceWithoutParameters
@@ -52,7 +51,6 @@ final class MyClass: SomeProtocol {
 // or dependencies without parameters, or have no dependencies.
 
 // wiring: inject
-@Inject
 class MySingleton: SomeOtherProtocol {
 
     let someDependency: SomeDependency
@@ -66,7 +64,6 @@ class MySingleton: SomeOtherProtocol {
 }
 
 // wiring: inject
-@Inject
 class AnotherSingleton {
     let firstSingleton: SomeOtherProtocol
 
@@ -79,7 +76,6 @@ class AnotherSingleton {
 }
 
 // wiring: inject
-@Inject
 class SomeInstance {
     let firstSingleton: SomeOtherProtocol
     let parameter: Int
@@ -95,7 +91,6 @@ class SomeInstance {
 }
 
 // wiring: inject
-@Inject
 class SomeInstanceWithoutParameters {
     let firstSingleton: SomeOtherProtocol
     let anotherSingleton: AnotherSingleton

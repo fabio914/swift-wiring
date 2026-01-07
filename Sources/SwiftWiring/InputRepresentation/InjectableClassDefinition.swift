@@ -20,7 +20,7 @@ struct InjectableClassDefinition: CustomStringConvertible {
         converter: SourceLocationConverter,
         classDeclaration: ClassDeclSyntax
     ) throws {
-        guard try hasInjectableClassAttribute(converter: converter, item: classDeclaration) else {
+        guard try hasInjectableClassCommand(converter: converter, item: classDeclaration) else {
             return nil
         }
 
@@ -82,95 +82,37 @@ struct InjectableClassDefinition: CustomStringConvertible {
         self.sourceLocation = classDeclaration.startLocation(converter: converter)
     }
 
-    func filteredClassDeclaration() -> ClassDeclSyntax {
-        let filteredInitializerDeclaration = initializerDefinition.filteredInitializerDeclaration()
-
-        return filterInjectableAttributes(from: classDeclaration)
-            .with(
-                \.memberBlock.members,
-                .init(
-                    classDeclaration.memberBlock.members.map { item in
-                        if item.decl.is(InitializerDeclSyntax.self) {
-                            var newItem = item
-                            newItem.decl = .init(fromProtocol: filteredInitializerDeclaration)
-                            return newItem
-                        } else {
-                            return item
-                        }
-                    }
-                )
-            )
-    }
-
     var description: String {
         "InjectableClassDefinition(\(className), \(inheritanceChain), \(initializerDefinition))"
     }
 }
 
-// MARK: - Attributes
-
-enum InjectableClassAttributeError: Error {
-    case invalidArgumentsInInjectAttribute
-    case multipleInjectAttributes
+enum InjectableClassCommandError: Error {
+    case expectedInjectCommand
 }
 
 ///
-/// Returns true if this is a class with an @Inject annotation
+/// Returns true if this is a class with `wiring: inject`
 ///
-func hasInjectableClassAttribute(
+private func hasInjectableClassCommand(
     converter: SourceLocationConverter,
     item: ClassDeclSyntax
 ) throws -> Bool {
-    guard !item.attributes.isEmpty else {
-        return false
-    }
+    do {
+        let wiringCommand = try item.leadingTrivia.wiringCommand()
 
-    let injectAttribute: AttributeListSyntax = try item.attributes.filter { element in
-        guard let attribute = element.as(AttributeSyntax.self),
-            let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self),
-              identifier.name.text == "Inject"
-        else {
+        switch wiringCommand {
+        case .inject:
+            return true
+        case .empty:
             return false
+        default:
+            throw InjectableClassCommandError.expectedInjectCommand
         }
-
-        if let labeledArguments = attribute.arguments?.as(LabeledExprListSyntax.self),
-              labeledArguments.count != 0 {
-            throw InputFileError(
-                location: attribute.startLocation(converter: converter),
-                error: InjectableClassAttributeError.invalidArgumentsInInjectAttribute
-            )
-        }
-
-        return true
-    }
-
-    if injectAttribute.count == 0 {
-        return false
-    }
-
-    if injectAttribute.count > 1 {
+    } catch {
         throw InputFileError(
             location: item.startLocation(converter: converter),
-            error: InjectableClassAttributeError.multipleInjectAttributes
+            error: error
         )
     }
-
-    return true
-}
-
-func filterInjectableAttributes(
-    from item: ClassDeclSyntax
-) -> ClassDeclSyntax {
-    item.with(
-        \.attributes,
-        item.attributes.filter { element in
-            if let attribute = element.as(AttributeSyntax.self),
-                let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self),
-                identifier.name.text == "Inject" {
-                return false
-            }
-
-            return true
-        }
-    )
 }
