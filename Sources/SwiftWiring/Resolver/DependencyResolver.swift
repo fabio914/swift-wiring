@@ -122,7 +122,7 @@ enum ResolvedContainerError: Error {
     case missingClassFor(ClassName, BindingName)
     case singletonClassCannotHaveParameters(ClassName)
     case classDependsOnClassThatRequireParameters(ClassName)
-    case circularDependency(ClassName, BindingName)
+    case dependencyCycleDetected(String)
 }
 
 struct ResolvedContainer: CustomStringConvertible {
@@ -156,6 +156,7 @@ struct ResolvedContainer: CustomStringConvertible {
 
         var externalDependencies: Set<ExternalDependency> = []
         var resolvedDependencies: [ResolvedDependency] = []
+        let internalDependencyGraph = DependencyGraph<BindingName>()
 
         for unresolvedInternalDependency in unresolvedInternalDependencies {
             // Singletons cannot have parameters.
@@ -183,6 +184,7 @@ struct ResolvedContainer: CustomStringConvertible {
                         )
                     }
 
+                    internalDependencyGraph.add(unresolvedInternalDependency.definition.bindingName, to: dependencyName)
                     dependencyTypes[dependencyName] = .internal(definition)
                 } else if dependencyName == containerDefinition.containerName || dependencyName == containerDefinition.containerProtocolName {
                     // Dependencies can be injected with the container itself.
@@ -209,9 +211,12 @@ struct ResolvedContainer: CustomStringConvertible {
             )
         }
 
-        // TODO: Verify cycles
-
-        // TODO: Resolve initializers
+        if case let .failure(.cycleDetected(path)) = internalDependencyGraph.verifyCycle() {
+            throw InputFileError(
+                location: containerDefinition.sourceLocation,
+                error: ResolvedContainerError.dependencyCycleDetected(path.joined(separator: " > "))
+            )
+        }
 
         self.externalDependencies = externalDependencies.sorted(by: { $0.protocolName < $1.protocolName })
         self.resolvedDependencies = resolvedDependencies

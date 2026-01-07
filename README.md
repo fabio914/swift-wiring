@@ -199,9 +199,8 @@ You can install this command line tool with [Mint](https://github.com/yonaskolb/
 
 ## TO-DOs
 
- - [ ] Detect dependency cycles;
- - [ ] Named dependencies;
  - [ ] Access control;
+ - [ ] Named dependencies;
  - [ ] Allow containers to extend other containers;
  - [ ] Support actors and main actors;
  - [ ] Support multiple initializers;
