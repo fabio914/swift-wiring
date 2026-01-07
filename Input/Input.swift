@@ -22,17 +22,16 @@ final class MyClass: SomeProtocol {
 
     init(
         // wiring: dependency
-        @Dependency instance: SomeInstanceWithoutParameters,
+        instance: SomeInstanceWithoutParameters,
         // wiring: dependency
-        @Dependency someDependency: SomeDependency,
+        someDependency: SomeDependency,
         // wiring: dependency
-        @Dependency anotherDependency: AnotherDependency,
+        anotherDependency: AnotherDependency,
         // wiring: dependency
-        @Dependency singleton: SomeOtherProtocol,
+        singleton: SomeOtherProtocol,
         parameter value: Int,
         otherParameter: Array<Int>,
-        // wiring: dependency
-        @Dependency container: MyContainerProtocol
+        /* wiring:dependency */ container: MyContainerProtocol
     ) {
         self.instance = instance
         self.someDependency = someDependency
@@ -56,8 +55,7 @@ class MySingleton: SomeOtherProtocol {
     let someDependency: SomeDependency
 
     init(
-        // wiring: dependency
-        @Dependency someDependency: SomeDependency
+        /* wiring:dependency */ someDependency: SomeDependency
     ) {
         self.someDependency = someDependency
     }
@@ -69,7 +67,7 @@ class AnotherSingleton {
 
     init(
         // wiring: dependency
-        @Dependency firstSingleton: SomeOtherProtocol
+        firstSingleton: SomeOtherProtocol
     ) {
         self.firstSingleton = firstSingleton
     }
@@ -82,7 +80,7 @@ class SomeInstance {
 
     init(
         // wiring: dependency
-        @Dependency firstSingleton: SomeOtherProtocol,
+        firstSingleton: SomeOtherProtocol,
         parameter: Int
     ) {
         self.firstSingleton = firstSingleton
@@ -97,9 +95,9 @@ class SomeInstanceWithoutParameters {
 
     init(
         // wiring: dependency
-        @Dependency firstSingleton: SomeOtherProtocol,
+        firstSingleton: SomeOtherProtocol,
         // wiring: dependency
-        @Dependency anotherSingleton: AnotherSingleton
+        anotherSingleton: AnotherSingleton
     ) {
         self.firstSingleton = firstSingleton
         self.anotherSingleton = anotherSingleton

@@ -88,7 +88,7 @@ struct InjectableClassDefinition: CustomStringConvertible {
 }
 
 enum InjectableClassCommandError: Error {
-    case expectedInjectCommand
+    case expectedInjectCommand(found: WiringCommand)
 }
 
 ///
@@ -107,7 +107,7 @@ private func hasInjectableClassCommand(
         case .empty:
             return false
         default:
-            throw InjectableClassCommandError.expectedInjectCommand
+            throw InjectableClassCommandError.expectedInjectCommand(found: wiringCommand)
         }
     } catch {
         throw InputFileError(

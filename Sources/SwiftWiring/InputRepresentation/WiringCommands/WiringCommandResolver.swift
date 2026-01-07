@@ -15,6 +15,7 @@ enum WiringCommand {
 
     case empty
     case inject
+    // TODO: Implement named dependencies: namedDependency(Name)
     case dependency
     case container(containerName: ContainerName, commands: [ContainerCommand])
 }

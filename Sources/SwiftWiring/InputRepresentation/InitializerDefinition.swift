@@ -94,7 +94,7 @@ struct ParameterDefinition: CustomStringConvertible {
     ) throws {
         self.functionParameter = functionParameter
 
-        if let dependency = try dependencyAttribute(converter: converter, item: functionParameter) {
+        if let dependency = try dependencyCommand(converter: converter, item: functionParameter) {
             self.kind = .dependency(dependency)
         } else {
             self.kind = .parameter(functionParameter.firstName.text)
@@ -106,11 +106,8 @@ struct ParameterDefinition: CustomStringConvertible {
     }
 }
 
-// MARK: - Attributes
-
 enum DependencyDefinitionError: Error {
-    case invalidArgumentsInDependencyAttribute
-    case multipleDependencyAttributes
+    case expectedDependencyCommand(found: WiringCommand)
     case defaultValuesNotSupported
     case parameterTypeNotSupported
     case genericTypeNotSupported
@@ -125,49 +122,40 @@ struct InitializerDependencyDefinition: CustomStringConvertible {
     }
 }
 
-// TODO: Implement named dependencies: @NamedDependency(Name)
+private func hasDependencyCommand(
+    converter: SourceLocationConverter,
+    item: FunctionParameterSyntax
+) throws -> Bool {
+    do {
+        let wiringCommand = try item.leadingTrivia.wiringCommand()
+
+        switch wiringCommand {
+        case .dependency:
+            return true
+        case .empty:
+            return false
+        default:
+            throw DependencyDefinitionError.expectedDependencyCommand(found: wiringCommand)
+        }
+    } catch {
+        throw InputFileError(
+            location: item.startLocation(converter: converter),
+            error: error
+        )
+    }
+}
 
 ///
-/// Detects a Dependency Annotation in a Function Parameter
+/// Detects a `wiring: dependency` in a Function Parameter
 /// Example:
-///   @Dependency someDependency: SomeDependencyProtocol
+///   /* wiring: dependency */ someDependency: SomeDependencyProtocol
 ///
-func dependencyAttribute(
+private func dependencyCommand(
     converter: SourceLocationConverter,
     item: FunctionParameterSyntax
 ) throws -> InitializerDependencyDefinition? {
-    guard !item.attributes.isEmpty else {
+    guard try hasDependencyCommand(converter: converter, item: item) else {
         return nil
-    }
-
-    let dependencyAttribute: AttributeListSyntax = try item.attributes.filter { element in
-        guard let attribute = element.as(AttributeSyntax.self),
-            let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self),
-              identifier.name.text == "Dependency"
-        else {
-            return false
-        }
-
-        if let labeledArguments = attribute.arguments?.as(LabeledExprListSyntax.self),
-              labeledArguments.count != 0 {
-            throw InputFileError(
-                location: attribute.startLocation(converter: converter),
-                error: DependencyDefinitionError.invalidArgumentsInDependencyAttribute
-            )
-        }
-
-        return true
-    }
-
-    if dependencyAttribute.count == 0 {
-        return nil
-    }
-
-    if dependencyAttribute.count > 1 {
-        throw InputFileError(
-            location: item.startLocation(converter: converter),
-            error: DependencyDefinitionError.multipleDependencyAttributes
-        )
     }
 
     guard item.defaultValue == nil else {
