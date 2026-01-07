@@ -6,6 +6,7 @@ typealias ContainerName = String
 
 enum WiringCommand {
     enum ContainerCommand {
+        // TODO: Add optional body to these commands, and add option to set the access control type.
         case bind(ClassName, BindingName)
         case singletonBind(ClassName, BindingName)
         case instance(ClassName)
@@ -45,13 +46,13 @@ final class WiringCommandResolver {
 
         switch firstCommand.name {
         case "inject":
-            try verifyBodylessCommand(firstCommand, named: "inject", withArguments: 0)
+            try verifyCommand(firstCommand, named: "inject", withArguments: 0, andBody: .empty)
             return .inject
         case "dependency":
-            try verifyBodylessCommand(firstCommand, named: "dependency", withArguments: 0)
+            try verifyCommand(firstCommand, named: "dependency", withArguments: 0, andBody: .empty)
             return .dependency
         case "container":
-            try verifyBodyCommand(firstCommand, named: "container", withArguments: 1)
+            try verifyCommand(firstCommand, named: "container", withArguments: 1, andBody: .required)
             let subCommands = try firstCommand.body.map { try resolveContainerCommand($0) }
             return .container(containerName: firstCommand.arguments[0], commands: subCommands)
         default:
@@ -62,47 +63,49 @@ final class WiringCommandResolver {
     private static func resolveContainerCommand(_ rawCommand: CommandParser.Command) throws -> WiringCommand.ContainerCommand {
         switch rawCommand.name {
         case "bind":
-            try verifyBodylessCommand(rawCommand, named: "bind", withArguments: 2)
+            try verifyCommand(rawCommand, named: "bind", withArguments: 2, andBody: .empty)
             return .bind(rawCommand.arguments[0], rawCommand.arguments[1])
         case "singletonBind":
-            try verifyBodylessCommand(rawCommand, named: "singletonBind", withArguments: 2)
+            try verifyCommand(rawCommand, named: "singletonBind", withArguments: 2, andBody: .empty)
             return .singletonBind(rawCommand.arguments[0], rawCommand.arguments[1])
         case "instance":
-            try verifyBodylessCommand(rawCommand, named: "instance", withArguments: 1)
+            try verifyCommand(rawCommand, named: "instance", withArguments: 1, andBody: .empty)
             return .instance(rawCommand.arguments[0])
         case "singleton":
-            try verifyBodylessCommand(rawCommand, named: "singleton", withArguments: 1)
+            try verifyCommand(rawCommand, named: "singleton", withArguments: 1, andBody: .empty)
             return .singleton(rawCommand.arguments[0])
         default:
             throw CommandResolverError.unrecognizedCommand(rawCommand.name)
         }
     }
 
-    private static func verifyBodylessCommand(
-        _ rawCommand: CommandParser.Command,
-        named command: String,
-        withArguments countOfArguments: Int
-    ) throws {
-        guard rawCommand.arguments.count == countOfArguments else {
-            throw CommandResolverError.invalidNumberOfArgumentsFor(command: command, expected: countOfArguments)
-        }
-
-        guard rawCommand.body.isEmpty else {
-            throw CommandResolverError.unexpectedBodyFor(command: command)
-        }
+    enum BodyType {
+        case empty
+        case required
+        case optional
     }
 
-    private static func verifyBodyCommand(
+    private static func verifyCommand(
         _ rawCommand: CommandParser.Command,
         named command: String,
-        withArguments countOfArguments: Int
+        withArguments countOfArguments: Int,
+        andBody bodyType: BodyType
     ) throws {
         guard rawCommand.arguments.count == countOfArguments else {
             throw CommandResolverError.invalidNumberOfArgumentsFor(command: command, expected: countOfArguments)
         }
 
-        guard !rawCommand.body.isEmpty else {
-            throw CommandResolverError.missingBodyFor(command: command)
+        switch bodyType {
+        case .empty:
+            guard rawCommand.body.isEmpty else {
+                throw CommandResolverError.unexpectedBodyFor(command: command)
+            }
+        case .required:
+            guard !rawCommand.body.isEmpty else {
+                throw CommandResolverError.missingBodyFor(command: command)
+            }
+        case .optional:
+            break
         }
     }
 }
