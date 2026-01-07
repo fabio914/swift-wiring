@@ -10,6 +10,7 @@ enum WiringCommand {
         case singletonBind(ClassName, BindingName)
         case instance(ClassName)
         case singleton(ClassName)
+        // TODO: Support named dependencies: namedBind(ClassName, BindingName, Name), namedSingletonBind(ClassName, BindingName, Name)
     }
 
     case empty

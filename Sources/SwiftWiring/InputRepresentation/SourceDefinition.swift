@@ -8,14 +8,12 @@ struct SourceDefinition: CustomStringConvertible {
 
     let fileName: String
     let tree: SourceFileSyntax
-    private let filteredStatements: [CodeBlockItemSyntax]
 
     init(fileName: String, tree: SourceFileSyntax) throws {
         let sourceLocationConverter = SourceLocationConverter(fileName: fileName, tree: tree)
 
         var containers: [ContainerDefinition] = []
         var injectableClasses: [InjectableClassDefinition] = []
-        var filteredStatements: [CodeBlockItemSyntax] = []
 
         let imports: [ImportDeclSyntax] = tree.statements.compactMap { item in
             guard let importDeclaration = item.item.as(ImportDeclSyntax.self) else { return nil }
@@ -26,21 +24,12 @@ struct SourceDefinition: CustomStringConvertible {
             if let protocolDeclaration = item.item.as(ProtocolDeclSyntax.self) {
                 if let container = try ContainerDefinition(converter: sourceLocationConverter, imports: imports, protocolDeclaration: protocolDeclaration) {
                     containers.append(container)
-                    filteredStatements.append(item.with(\.item, .init(container.filteredProtocolDeclaration())))
-                } else {
-                    filteredStatements.append(item)
                 }
             } else if let classDeclaraion = item.item.as(ClassDeclSyntax.self) {
                 // Ignoring nested classes
                 if let injectableClass = try InjectableClassDefinition(converter: sourceLocationConverter, classDeclaration: classDeclaraion) {
                     injectableClasses.append(injectableClass)
-                    filteredStatements.append(item.with(\.item, .init(injectableClass.filteredClassDeclaration())))
                 }
-                else {
-                    filteredStatements.append(item)
-                }
-            } else {
-                filteredStatements.append(item)
             }
         }
 
@@ -48,11 +37,6 @@ struct SourceDefinition: CustomStringConvertible {
         self.tree = tree
         self.containers = containers
         self.injectableClasses = injectableClasses
-        self.filteredStatements = filteredStatements
-    }
-
-    func filteredSource() -> SourceFileSyntax {
-        tree.with(\.statements, .init(filteredStatements))
     }
 
     var description: String {

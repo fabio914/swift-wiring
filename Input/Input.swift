@@ -8,12 +8,6 @@ import SwiftUI
 //   instance(SomeInstance)
 //   instance(SomeInstanceWithoutParameters)
 // }
-@Container(MyContainer)
-@Bind(MyClass, SomeProtocol)
-@SingletonBind(MySingleton, SomeOtherProtocol)
-@Singleton(AnotherSingleton)
-@Instance(SomeInstance)
-@Instance(SomeInstanceWithoutParameters)
 protocol MyContainerProtocol {
 }
 
