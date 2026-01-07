@@ -3,7 +3,7 @@ import Foundation
 protocol UserCoordinatorProtocol: AnyObject {
 }
 
-@Inject
+/* wiring:inject */
 final class UserViewModel: UserViewModelProtocol {
 
     private let coordinator: UserCoordinatorProtocol
@@ -11,8 +11,8 @@ final class UserViewModel: UserViewModelProtocol {
     private let logger: LoggerProtocol
 
     init(
-        @Dependency user: User,
-        @Dependency logger: LoggerProtocol,
+        /* wiring:dependency */ user: User,
+        /* wiring:dependency */ logger: LoggerProtocol,
         coordinator: UserCoordinatorProtocol
     ) {
         self.user = user

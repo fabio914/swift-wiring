@@ -1,14 +1,20 @@
 import UIKit
 
-// This container has all dependencies for the Logged In state.
-@Container(MainContainer)
-@Instance(MainCoordinator)
+/*
 
-// User Tab
-@Instance(UserCoordinator)
-@Instance(UserViewModel)
+This container has all dependencies for the Logged In state.
 
-// Settings Tab
-@Instance(SettingsCoordinator)
-@Instance(SettingsViewModel)
+wiring: container(MainContainer) {
+  instance(MainCoordinator)
+
+  // User Tab
+  instance(UserCoordinator)
+  instance(UserViewModel)
+
+  // Settings Tab
+  instance(SettingsCoordinator)
+  instance(SettingsViewModel)
+}
+
+*/
 protocol MainContainerProtocol {}

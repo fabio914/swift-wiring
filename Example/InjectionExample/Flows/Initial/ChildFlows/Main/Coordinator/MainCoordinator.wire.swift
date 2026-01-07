@@ -1,13 +1,13 @@
 import UIKit
 
-@Inject
+/* wiring:inject */
 final class MainCoordinator: CoordinatorProtocol {
 
     let mainContainer: MainContainer
     weak var tabBarController: UITabBarController?
 
     init(
-        @Dependency mainContainer: MainContainer
+        /* wiring:dependency */ mainContainer: MainContainer
     ) {
         self.mainContainer = mainContainer
     }

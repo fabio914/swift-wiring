@@ -1,7 +1,8 @@
 import Foundation
 
 // Use the Keychain for session persistence in a Prod app, please
-@Inject
+
+/* wiring:inject */
 final class UserDefaultsPersistence: SessionPersistenceProtocol {
 
     private let userDefaults = UserDefaults.standard

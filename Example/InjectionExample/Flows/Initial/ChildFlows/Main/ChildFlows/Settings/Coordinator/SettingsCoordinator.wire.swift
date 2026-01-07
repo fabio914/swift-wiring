@@ -1,13 +1,13 @@
 import UIKit
 
-@Inject
+/* wiring:inject */
 final class SettingsCoordinator: CoordinatorProtocol {
 
     let mainContainer: MainContainer
     weak var navigationController: UINavigationController?
 
     init(
-        @Dependency mainContainer: MainContainer
+        /* wiring:dependency */ mainContainer: MainContainer
     ) {
         self.mainContainer = mainContainer
     }

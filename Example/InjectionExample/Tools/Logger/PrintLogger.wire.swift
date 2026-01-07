@@ -1,6 +1,6 @@
 import Foundation
 
-@Inject
+/* wiring:inject */
 final class PrintLogger: LoggerProtocol {
 
     init() {

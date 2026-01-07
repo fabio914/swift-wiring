@@ -6,14 +6,14 @@ protocol IntroCoordinatorProtocol: AnyObject {
     func introToLogin()
 }
 
-@Inject
+/* wiring:inject */
 final class IntroViewModel: IntroViewModelProtocol {
 
     private let coordinator: IntroCoordinatorProtocol
     private let logger: LoggerProtocol
 
     init(
-        @Dependency logger: LoggerProtocol,
+        /* wiring:dependency */ logger: LoggerProtocol,
         coordinator: IntroCoordinatorProtocol
     ) {
         self.logger = logger

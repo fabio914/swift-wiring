@@ -1,6 +1,6 @@
 import UIKit
 
-@Inject
+/* wiring:inject */
 final class InitialCoordinator: CoordinatorProtocol {
 
     // Our Initial Coordinator is retaining the App Container
@@ -9,7 +9,8 @@ final class InitialCoordinator: CoordinatorProtocol {
     weak var rootViewController: InitialContainerViewController?
 
     init(
-        @Dependency appContainer: AppContainer
+        /* wiring:dependency */
+        appContainer: AppContainer
     ) {
         self.appContainer = appContainer
     }

@@ -61,12 +61,12 @@ class MySingleton: SomeOtherProtocol {
     }
 }
 
-// wiring: inject
+//wiring:inject
 class AnotherSingleton {
     let firstSingleton: SomeOtherProtocol
 
     init(
-        // wiring: dependency
+        //wiring:dependency
         firstSingleton: SomeOtherProtocol
     ) {
         self.firstSingleton = firstSingleton

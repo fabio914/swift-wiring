@@ -9,13 +9,13 @@ enum LoginError: Error {
     case randomError
 }
 
-@Inject
+/* wiring:inject */
 final class LoginApiClient: LoginApiClientProtocol {
 
     let networkManager: NetworkManagerProtocol
 
     init(
-        @Dependency networkManager: NetworkManagerProtocol
+        /* wiring:dependency */ networkManager: NetworkManagerProtocol
     ) {
         self.networkManager = networkManager
     }

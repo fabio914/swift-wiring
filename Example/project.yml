@@ -48,17 +48,10 @@ targets:
           - Info.plist
     preBuildScripts:
       - name: Injection
+        # You can also specify your input files instead, and set `basedOnDependencyAnalysis` to `true`
         basedOnDependencyAnalysis: false
         script: |
                 export PATH=$PATH:${SRCROOT}/../.build/release/
                 swift-wiring inject `find ${SRCROOT} -name "*.wire.swift" | tr '\n' ' '` -o ${SCRIPT_OUTPUT_FILE_0}
         outputFiles:
           - $(SRCROOT)/InjectionExample/Generated/Containers.generated.swift
-    buildRules:
-      - name: Filtering
-        filePattern: "*.wire.swift"
-        script: |
-                export PATH=$PATH:${SRCROOT}/../.build/release/
-                swift-wiring filter -i ${INPUT_FILE_PATH} -o ${SCRIPT_OUTPUT_FILE_0}
-        outputFiles:
-          - $(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).filtered.swift

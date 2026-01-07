@@ -15,7 +15,7 @@ enum SessionManagerError: Error {
     case failedToPersistSession(Error)
 }
 
-@Inject
+/* wiring:inject */
 final class SessionManager: SessionManagerProtocol {
 
     weak var delegate: SessionManagerDelegate?
@@ -25,8 +25,8 @@ final class SessionManager: SessionManagerProtocol {
     private let logger: LoggerProtocol
 
     init(
-        @Dependency persistence: SessionPersistenceProtocol,
-        @Dependency logger: LoggerProtocol
+        /* wiring:dependency */ persistence: SessionPersistenceProtocol,
+        /* wiring:dependency */ logger: LoggerProtocol
     ) {
         self.persistence = persistence
         self.logger = logger

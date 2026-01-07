@@ -1,21 +1,26 @@
 import UIKit
 
-// This container has the base dependencies (that are available
-// whether or not the app has a session)
-@Container(AppContainer)
+/*
 
-// Tools
-@SingletonBind(UserDefaultsPersistence, SessionPersistenceProtocol)
-@SingletonBind(PrintLogger, LoggerProtocol)
-@SingletonBind(SessionManager, SessionManagerProtocol)
-@SingletonBind(NetworkManager, NetworkManagerProtocol)
+This container has the base dependencies (that are available
+whether or not the app has a session)
 
-// Initial flow
-@Instance(InitialCoordinator)
+wiring: container(AppContainer) {
+  // Tools
+  singletonBind(UserDefaultsPersistence, SessionPersistenceProtocol)
+  singletonBind(PrintLogger, LoggerProtocol)
+  singletonBind(SessionManager, SessionManagerProtocol)
+  singletonBind(NetworkManager, NetworkManagerProtocol)
 
-// Logged out flow
-@Bind(LoginApiClient, LoginApiClientProtocol)
-@Instance(LoggedOutCoordinator)
-@Instance(IntroViewModel)
-@Instance(LoginViewModel)
+  // Initial flow
+  instance(InitialCoordinator)
+
+  // Logged out flow
+  bind(LoginApiClient, LoginApiClientProtocol)
+  instance(LoggedOutCoordinator)
+  instance(IntroViewModel)
+  instance(LoginViewModel)
+}
+
+*/
 protocol AppContainerProtocol {}
