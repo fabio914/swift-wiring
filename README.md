@@ -1,8 +1,10 @@
 # Swift Wiring
 
-This is a command line tool for compile-time Automatic Dependency Injection for [Swift](https://www.swift.org). It reads `wiring:` annotations in the Swift source code and generates `Container`s with your resolved dependencies.
+This is a command line tool for compile-time Automatic Dependency Injection for [Swift](https://www.swift.org). 
+It reads `wiring:` annotations in the Swift source code and generates `Container`s with your resolved dependencies.
 
-This tool is still in active development and is **experimental**. I don't recommend adopting it in your project yet. Check the TO-DO list below for some of the things that still need to be implemented.
+This tool is still in active development and is **experimental**. I don't recommend adopting it in your project yet. 
+Check the TO-DO list below for some of the things that still need to be implemented.
 
 **Input**
 ```swift
@@ -197,12 +199,12 @@ You can install this command line tool with [Mint](https://github.com/yonaskolb/
 
 ## TO-DOs
 
- - [] Detect dependency cycles;
- - [] Named dependencies;
- - [] Access control;
- - [] Allow containers to extend other containers;
- - [] Support actors and main actors;
- - [] Support multiple initializers;
+ - [ ] Detect dependency cycles;
+ - [ ] Named dependencies;
+ - [ ] Access control;
+ - [ ] Allow containers to extend other containers;
+ - [ ] Support actors and main actors;
+ - [ ] Support multiple initializers;
  etc...
 
 ## Credits
