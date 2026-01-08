@@ -1,6 +1,6 @@
 import Foundation
 
-protocol LoggerProtocol: Sendable {
+public protocol LoggerProtocol: Sendable {
     func log(_ message: String)
     func logError(_ error: Error)
 }
