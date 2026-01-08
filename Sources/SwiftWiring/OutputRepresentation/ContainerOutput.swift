@@ -169,7 +169,18 @@ final class ContainerOutput {
         let functionDeclaration = FunctionDeclSyntax(
             leadingTrivia: .newline + .spaces(4),
             modifiers: DeclModifierListSyntax {
-                DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space) // TODO: Implement access control
+                switch resolvedDependency.definition.kind {
+                case .singleton:
+                    // Singleton's build functions are always private
+                    DeclModifierSyntax(name: .keyword(.private), trailingTrivia: .space)
+                case .build:
+                    switch resolvedDependency.definition.accessLevel {
+                    case .internal:
+                        DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space)
+                    case .public:
+                        DeclModifierSyntax(name: .keyword(.public), trailingTrivia: .space)
+                    }
+                }
             },
             funcKeyword: .keyword(.func, trailingTrivia: .space),
             name: .identifier(buildFunctionNameFor(definition: resolvedDependency.definition)),
@@ -204,6 +215,9 @@ final class ContainerOutput {
         let variableDeclaration = VariableDeclSyntax(
             leadingTrivia: .newline + .spaces(4),
             modifiers: DeclModifierListSyntax {
+                if case .public = resolvedDependency.definition.accessLevel {
+                    DeclModifierSyntax(name: .keyword(.public), trailingTrivia: .space)
+                }
                 DeclModifierSyntax(
                     name: .keyword(.private),
                     detail: DeclModifierDetailSyntax(detail: .keyword(.set)),
@@ -366,7 +380,12 @@ final class ContainerOutput {
     private func containerClass() -> DeclSyntax {
         let classDeclaration = ClassDeclSyntax(
             modifiers: DeclModifierListSyntax {
-                DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space) // TODO: Implement access control
+                switch resolvedContainer.containerDefinition.accessLevel {
+                case .internal:
+                    DeclModifierSyntax(name: .keyword(.internal), trailingTrivia: .space)
+                case .public:
+                    DeclModifierSyntax(name: .keyword(.public), trailingTrivia: .space)
+                }
                 DeclModifierSyntax(name: .keyword(.final), trailingTrivia: .space)
             },
             classKeyword: .keyword(.class, trailingTrivia: .space),
