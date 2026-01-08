@@ -17,6 +17,7 @@ struct DependencyDefinition: CustomStringConvertible {
     let bindingType: BindingType
     let className: String
     let sourceLocation: SourceLocation
+    let accessLevel: AccessLevel
 
     var bindingName: BindingName {
         switch bindingType {
@@ -29,6 +30,36 @@ struct DependencyDefinition: CustomStringConvertible {
 
     var description: String {
         "DependencyDefinition(\(kind), \(className), \(bindingName))"
+    }
+
+    init(
+        sourceLocation: SourceLocation,
+        command: WiringCommand.ContainerCommand
+    ) {
+        self.sourceLocation = sourceLocation
+
+        switch command {
+        case let .bind(className, bindingName, subCommands):
+            self.kind = .build
+            self.bindingType = .binding(bindingName)
+            self.className = className
+            self.accessLevel = subCommands.accessLevel
+        case let .singletonBind(className, bindingName, subCommands):
+            self.kind = .singleton
+            self.bindingType = .binding(bindingName)
+            self.className = className
+            self.accessLevel = subCommands.accessLevel
+        case let .instance(className, subCommands):
+            self.kind = .build
+            self.bindingType = .instance
+            self.className = className
+            self.accessLevel = subCommands.accessLevel
+        case let .singleton(className, subCommands):
+            self.kind = .singleton
+            self.bindingType = .instance
+            self.className = className
+            self.accessLevel = subCommands.accessLevel
+        }
     }
 }
 
@@ -112,37 +143,8 @@ private func bindings(
     sourceLocation: SourceLocation,
     commands: [WiringCommand.ContainerCommand]
 ) throws -> [BindingName: DependencyDefinition] {
-    let definitions = commands.map { bindingCommand in
-        switch bindingCommand {
-        case let .bind(className, bindingName):
-            DependencyDefinition(
-                kind: .build,
-                bindingType: .binding(bindingName),
-                className: className,
-                sourceLocation: sourceLocation
-            )
-        case let .singletonBind(className, bindingName):
-            DependencyDefinition(
-                kind: .singleton,
-                bindingType: .binding(bindingName),
-                className: className,
-                sourceLocation: sourceLocation
-            )
-        case let .instance(className):
-            DependencyDefinition(
-                kind: .build,
-                bindingType: .instance,
-                className: className,
-                sourceLocation: sourceLocation
-            )
-        case let .singleton(className):
-            DependencyDefinition(
-                kind: .singleton,
-                bindingType: .instance,
-                className: className,
-                sourceLocation: sourceLocation
-            )
-        }
+    let definitions = commands.map { command in
+        DependencyDefinition(sourceLocation: sourceLocation, command: command)
     }
 
     guard !definitions.isEmpty else {

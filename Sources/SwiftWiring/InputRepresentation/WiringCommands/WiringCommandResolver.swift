@@ -3,20 +3,31 @@ import Foundation
 typealias BindingName = String // Protocol or the Class own name
 typealias ClassName = String
 typealias ContainerName = String
+//typealias Name = String
+
+enum AccessLevel {
+    case `public`
+    case `internal`
+}
 
 enum WiringCommand {
+    enum BindingCommand {
+        case access(AccessLevel)
+
+        // TODO: Support named dependencies
+//        case name(Name)
+    }
+
     enum ContainerCommand {
-        // TODO: Add optional body to these commands, and add option to set the access control type.
-        case bind(ClassName, BindingName)
-        case singletonBind(ClassName, BindingName)
-        case instance(ClassName)
-        case singleton(ClassName)
-        // TODO: Support named dependencies: namedBind(ClassName, BindingName, Name), namedSingletonBind(ClassName, BindingName, Name)
+        case bind(ClassName, BindingName, [BindingCommand])
+        case singletonBind(ClassName, BindingName, [BindingCommand])
+        case instance(ClassName, [BindingCommand])
+        case singleton(ClassName, [BindingCommand])
     }
 
     case empty
     case inject
-    // TODO: Implement named dependencies: namedDependency(Name)
+    // TODO: Implement named dependencies
     case dependency
     case container(containerName: ContainerName, commands: [ContainerCommand])
 }
@@ -27,6 +38,8 @@ enum CommandResolverError: Error {
     case unexpectedBodyFor(command: String)
     case missingBodyFor(command: String)
     case unrecognizedCommand(String)
+    case argumentNotSupported(String)
+    case invalidArgument(String)
 }
 
 final class WiringCommandResolver {
@@ -53,27 +66,60 @@ final class WiringCommandResolver {
             return .dependency
         case "container":
             try verifyCommand(firstCommand, named: "container", withArguments: 1, andBody: .required)
-            let subCommands = try firstCommand.body.map { try resolveContainerCommand($0) }
-            return .container(containerName: firstCommand.arguments[0], commands: subCommands)
+            return .container(
+                containerName: firstCommand.arguments[0],
+                commands: try containerSubCommands(firstCommand)
+            )
         default:
             throw CommandResolverError.unrecognizedCommand(firstCommand.name)
         }
     }
 
+    private static func containerSubCommands(_ rawCommand: CommandParser.Command) throws -> [WiringCommand.ContainerCommand] {
+        try rawCommand.body.map { try resolveContainerCommand($0) }
+    }
+
     private static func resolveContainerCommand(_ rawCommand: CommandParser.Command) throws -> WiringCommand.ContainerCommand {
         switch rawCommand.name {
         case "bind":
-            try verifyCommand(rawCommand, named: "bind", withArguments: 2, andBody: .empty)
-            return .bind(rawCommand.arguments[0], rawCommand.arguments[1])
+            try verifyCommand(rawCommand, named: "bind", withArguments: 2, andBody: .optional)
+            return .bind(rawCommand.arguments[0], rawCommand.arguments[1], try bindingSubCommands(rawCommand))
+        case "bindToSingleton":
+            try verifyCommand(rawCommand, named: "bindToSingleton", withArguments: 2, andBody: .optional)
+            return .bind(rawCommand.arguments[0], rawCommand.arguments[1], try bindingSubCommands(rawCommand))
         case "singletonBind":
-            try verifyCommand(rawCommand, named: "singletonBind", withArguments: 2, andBody: .empty)
-            return .singletonBind(rawCommand.arguments[0], rawCommand.arguments[1])
+            try verifyCommand(rawCommand, named: "singletonBind", withArguments: 2, andBody: .optional)
+            return .singletonBind(rawCommand.arguments[0], rawCommand.arguments[1], try bindingSubCommands(rawCommand))
         case "instance":
-            try verifyCommand(rawCommand, named: "instance", withArguments: 1, andBody: .empty)
-            return .instance(rawCommand.arguments[0])
+            try verifyCommand(rawCommand, named: "instance", withArguments: 1, andBody: .optional)
+            return .instance(rawCommand.arguments[0], try bindingSubCommands(rawCommand))
         case "singleton":
-            try verifyCommand(rawCommand, named: "singleton", withArguments: 1, andBody: .empty)
-            return .singleton(rawCommand.arguments[0])
+            try verifyCommand(rawCommand, named: "singleton", withArguments: 1, andBody: .optional)
+            return .singleton(rawCommand.arguments[0], try bindingSubCommands(rawCommand))
+        default:
+            throw CommandResolverError.unrecognizedCommand(rawCommand.name)
+        }
+    }
+
+    private static func bindingSubCommands(_ rawCommand: CommandParser.Command) throws -> [WiringCommand.BindingCommand] {
+        try rawCommand.body.map { try resolveBindingCommand($0) }
+    }
+
+    private static func resolveBindingCommand(_ rawCommand: CommandParser.Command) throws -> WiringCommand.BindingCommand {
+        switch rawCommand.name {
+        case "access":
+            try verifyCommand(rawCommand, named: "access", withArguments: 1, andBody: .empty)
+            switch rawCommand.arguments[0] {
+            case "public":
+                return .access(.public)
+            case "internal":
+                return .access(.internal)
+            case "private":
+                throw CommandResolverError.argumentNotSupported(rawCommand.arguments[0])
+            default:
+                throw CommandResolverError.invalidArgument(rawCommand.arguments[0])
+            }
+
         default:
             throw CommandResolverError.unrecognizedCommand(rawCommand.name)
         }
@@ -107,5 +153,19 @@ final class WiringCommandResolver {
         case .optional:
             break
         }
+    }
+}
+
+extension Array where Element == WiringCommand.BindingCommand {
+
+    var accessLevel: AccessLevel {
+        compactMap {
+            guard case let .access(level) = $0 else {
+                return nil
+            }
+
+            return level
+        }
+        .last ?? .internal
     }
 }
