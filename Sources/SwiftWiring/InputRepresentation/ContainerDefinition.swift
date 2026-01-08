@@ -32,7 +32,7 @@ struct DependencyDefinition: CustomStringConvertible {
         "DependencyDefinition(\(kind), \(className), \(bindingName))"
     }
 
-    init(
+    init?(
         sourceLocation: SourceLocation,
         command: WiringCommand.ContainerCommand
     ) {
@@ -59,6 +59,8 @@ struct DependencyDefinition: CustomStringConvertible {
             self.bindingType = .instance
             self.className = className
             self.accessLevel = subCommands.accessLevel
+        default:
+            return nil
         }
     }
 }
@@ -81,6 +83,7 @@ struct ContainerDefinition: CustomStringConvertible {
     let imports: [ImportDeclSyntax]
     let protocolDeclaration: ProtocolDeclSyntax
     let sourceLocation: SourceLocation
+    let accessLevel: AccessLevel
 
     init?(
         converter: SourceLocationConverter,
@@ -97,6 +100,7 @@ struct ContainerDefinition: CustomStringConvertible {
         self.imports = imports
         self.protocolDeclaration = protocolDeclaration
         self.sourceLocation = protocolDeclaration.startLocation(converter: converter)
+        self.accessLevel = commands.accessLevel
     }
 
     var description: String {
@@ -143,7 +147,7 @@ private func bindings(
     sourceLocation: SourceLocation,
     commands: [WiringCommand.ContainerCommand]
 ) throws -> [BindingName: DependencyDefinition] {
-    let definitions = commands.map { command in
+    let definitions = commands.compactMap { command in
         DependencyDefinition(sourceLocation: sourceLocation, command: command)
     }
 

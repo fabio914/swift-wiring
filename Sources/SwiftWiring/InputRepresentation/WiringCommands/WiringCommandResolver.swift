@@ -19,6 +19,7 @@ enum WiringCommand {
     }
 
     enum ContainerCommand {
+        case access(AccessLevel)
         case bind(ClassName, BindingName, [BindingCommand])
         case singletonBind(ClassName, BindingName, [BindingCommand])
         case instance(ClassName, [BindingCommand])
@@ -81,6 +82,8 @@ final class WiringCommandResolver {
 
     private static func resolveContainerCommand(_ rawCommand: CommandParser.Command) throws -> WiringCommand.ContainerCommand {
         switch rawCommand.name {
+        case "access":
+            return .access(try resolveAccessCommand(rawCommand))
         case "bind":
             try verifyCommand(rawCommand, named: "bind", withArguments: 2, andBody: .optional)
             return .bind(rawCommand.arguments[0], rawCommand.arguments[1], try bindingSubCommands(rawCommand))
@@ -108,20 +111,23 @@ final class WiringCommandResolver {
     private static func resolveBindingCommand(_ rawCommand: CommandParser.Command) throws -> WiringCommand.BindingCommand {
         switch rawCommand.name {
         case "access":
-            try verifyCommand(rawCommand, named: "access", withArguments: 1, andBody: .empty)
-            switch rawCommand.arguments[0] {
-            case "public":
-                return .access(.public)
-            case "internal":
-                return .access(.internal)
-            case "private":
-                throw CommandResolverError.argumentNotSupported(rawCommand.arguments[0])
-            default:
-                throw CommandResolverError.invalidArgument(rawCommand.arguments[0])
-            }
-
+            return .access(try resolveAccessCommand(rawCommand))
         default:
             throw CommandResolverError.unrecognizedCommand(rawCommand.name)
+        }
+    }
+
+    private static func resolveAccessCommand(_ rawCommand: CommandParser.Command) throws -> AccessLevel {
+        try verifyCommand(rawCommand, named: "access", withArguments: 1, andBody: .empty)
+        switch rawCommand.arguments[0] {
+        case "public":
+            return .public
+        case "internal":
+            return .internal
+        case "private":
+            throw CommandResolverError.argumentNotSupported(rawCommand.arguments[0])
+        default:
+            throw CommandResolverError.invalidArgument(rawCommand.arguments[0])
         }
     }
 
@@ -156,8 +162,22 @@ final class WiringCommandResolver {
     }
 }
 
-extension Array where Element == WiringCommand.BindingCommand {
+// MARK: - Helper functions to extract properties from the command body
 
+extension Array where Element == WiringCommand.BindingCommand {
+    var accessLevel: AccessLevel {
+        compactMap {
+            guard case let .access(level) = $0 else {
+                return nil
+            }
+
+            return level
+        }
+        .last ?? .internal
+    }
+}
+
+extension Array where Element == WiringCommand.ContainerCommand {
     var accessLevel: AccessLevel {
         compactMap {
             guard case let .access(level) = $0 else {
