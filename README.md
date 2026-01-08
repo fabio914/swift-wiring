@@ -11,10 +11,11 @@ Check the TO-DO list below for some of the things that still need to be implemen
 import Foundation
 
 // wiring: container(MyContainer) {
+//   access(public)
 //   bind(MyClass, SomeProtocol)
-//   singletonBind(MySingleton, SomeOtherProtocol)
+//   singletonBind(MySingleton, SomeOtherProtocol) { access(public) }
 //   singleton(AnotherSingleton)
-//   instance(SomeInstance)
+//   instance(SomeInstance) { access(public) }
 //   instance(SomeInstanceWithoutParameters)
 // }
 protocol MyContainerProtocol {
@@ -22,6 +23,7 @@ protocol MyContainerProtocol {
 
 // wiring: inject
 final class MyClass: SomeProtocol {
+
     let instance: SomeInstanceWithoutParameters
     let someDependency: SomeDependency
     let anotherDependency: AnotherDependency
@@ -123,14 +125,14 @@ protocol AnotherDependency {}
 ```swift
 import Foundation
 
-internal final class MyContainer: MyContainerProtocol {
+public final class MyContainer: MyContainerProtocol {
     let externalAnotherDependency: () -> AnotherDependency
 
     let externalSomeDependency: () -> SomeDependency
 
     private(set) lazy var singletonAnotherSingleton: AnotherSingleton = buildAnotherSingleton()
 
-    private(set) lazy var singletonSomeOtherProtocol: SomeOtherProtocol = buildSomeOtherProtocol()
+    public private(set) lazy var singletonSomeOtherProtocol: SomeOtherProtocol = buildSomeOtherProtocol()
 
     public init(
         anotherDependency: @autoclosure @escaping () -> AnotherDependency,
@@ -140,13 +142,13 @@ internal final class MyContainer: MyContainerProtocol {
         self.externalSomeDependency = someDependency
     }
 
-    internal func buildAnotherSingleton() -> AnotherSingleton {
+    private func buildAnotherSingleton() -> AnotherSingleton {
         return AnotherSingleton(
             firstSingleton: self.singletonSomeOtherProtocol
         )
     }
 
-    internal func buildSomeInstance(
+    public func buildSomeInstance(
         parameter: Int
     ) -> SomeInstance {
         return SomeInstance(
@@ -162,7 +164,7 @@ internal final class MyContainer: MyContainerProtocol {
         )
     }
 
-    internal func buildSomeOtherProtocol() -> SomeOtherProtocol {
+    private func buildSomeOtherProtocol() -> SomeOtherProtocol {
         return MySingleton(
             someDependency: self.externalSomeDependency()
         )
@@ -199,7 +201,6 @@ You can install this command line tool with [Mint](https://github.com/yonaskolb/
 
 ## TO-DOs
 
- - [ ] Access control;
  - [ ] Named dependencies;
  - [ ] Allow containers to extend other containers;
  - [ ] Support actors and main actors;

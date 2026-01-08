@@ -1,11 +1,11 @@
 import Foundation
-import SwiftUI
 
 // wiring: container(MyContainer) {
+//   access(public)
 //   bind(MyClass, SomeProtocol)
-//   singletonBind(MySingleton, SomeOtherProtocol)
+//   singletonBind(MySingleton, SomeOtherProtocol) { access(public) }
 //   singleton(AnotherSingleton)
-//   instance(SomeInstance)
+//   instance(SomeInstance) { access(public) }
 //   instance(SomeInstanceWithoutParameters)
 // }
 protocol MyContainerProtocol {

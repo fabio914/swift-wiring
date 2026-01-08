@@ -2,8 +2,8 @@
     
 import UIKit
 
-internal final class AppContainer: AppContainerProtocol {
-    private(set) lazy var singletonLoggerProtocol: LoggerProtocol = buildLoggerProtocol()
+public final class AppContainer: AppContainerProtocol {
+    public private(set) lazy var singletonLoggerProtocol: LoggerProtocol = buildLoggerProtocol()
 
     private(set) lazy var singletonNetworkManagerProtocol: NetworkManagerProtocol = buildNetworkManagerProtocol()
 
@@ -13,7 +13,7 @@ internal final class AppContainer: AppContainerProtocol {
 
     public init() {}
 
-    internal func buildInitialCoordinator() -> InitialCoordinator {
+    public func buildInitialCoordinator() -> InitialCoordinator {
         return InitialCoordinator(
             appContainer: self
         )
@@ -37,7 +37,7 @@ internal final class AppContainer: AppContainerProtocol {
         )
     }
 
-    internal func buildLoggerProtocol() -> LoggerProtocol {
+    private func buildLoggerProtocol() -> LoggerProtocol {
         return PrintLogger(
         )
     }
@@ -58,20 +58,20 @@ internal final class AppContainer: AppContainerProtocol {
         )
     }
 
-    internal func buildNetworkManagerProtocol() -> NetworkManagerProtocol {
+    private func buildNetworkManagerProtocol() -> NetworkManagerProtocol {
         return NetworkManager(
             sessionManager: self.singletonSessionManagerProtocol
         )
     }
 
-    internal func buildSessionManagerProtocol() -> SessionManagerProtocol {
+    private func buildSessionManagerProtocol() -> SessionManagerProtocol {
         return SessionManager(
             persistence: self.singletonSessionPersistenceProtocol,
             logger: self.singletonLoggerProtocol
         )
     }
 
-    internal func buildSessionPersistenceProtocol() -> SessionPersistenceProtocol {
+    private func buildSessionPersistenceProtocol() -> SessionPersistenceProtocol {
         return UserDefaultsPersistence(
         )
     }
