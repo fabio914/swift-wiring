@@ -20,8 +20,7 @@ final class MyClass: SomeProtocol {
     let singleton: SomeOtherProtocol
     let parameter: Int
 
-    init(
-        // wiring: dependency
+    init(// wiring: dependency()
         instance: SomeInstanceWithoutParameters,
         // wiring: dependency
         someDependency: SomeDependency,
@@ -30,8 +29,7 @@ final class MyClass: SomeProtocol {
         // wiring: dependency
         singleton: SomeOtherProtocol,
         parameter value: Int,
-        otherParameter: Array<Int>,
-        /* wiring:dependency */ container: MyContainerProtocol
+        otherParameter: Array<Int>, /* wiring:dependency */ container: MyContainerProtocol
     ) {
         self.instance = instance
         self.someDependency = someDependency
@@ -49,14 +47,11 @@ final class MyClass: SomeProtocol {
 // Singletons can only depend on singletons, external dependencies,
 // or dependencies without parameters, or have no dependencies.
 
-// wiring: inject
-class MySingleton: SomeOtherProtocol {
+/* wiring:inject */ class MySingleton: SomeOtherProtocol {
 
     let someDependency: SomeDependency
 
-    init(
-        /* wiring:dependency */ someDependency: SomeDependency
-    ) {
+    init(/* wiring:dependency */ someDependency: SomeDependency) {
         self.someDependency = someDependency
     }
 }
