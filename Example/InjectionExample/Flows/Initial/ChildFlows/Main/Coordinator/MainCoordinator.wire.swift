@@ -6,9 +6,7 @@ final class MainCoordinator: CoordinatorProtocol {
     let mainContainer: MainContainer
     weak var tabBarController: UITabBarController?
 
-    init(
-        /* wiring:dependency */ mainContainer: MainContainer
-    ) {
+    init(/* wiring:dependency */ mainContainer: MainContainer) {
         self.mainContainer = mainContainer
     }
 

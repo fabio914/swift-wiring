@@ -24,10 +24,7 @@ final class SessionManager: SessionManagerProtocol {
 
     private let logger: LoggerProtocol
 
-    init(
-        /* wiring:dependency */ persistence: SessionPersistenceProtocol,
-        /* wiring:dependency */ logger: LoggerProtocol
-    ) {
+    init(/* wiring:dependency */ persistence: SessionPersistenceProtocol, /* wiring:dependency */ logger: LoggerProtocol) {
         self.persistence = persistence
         self.logger = logger
     }

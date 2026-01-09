@@ -6,9 +6,7 @@ final class SettingsCoordinator: CoordinatorProtocol {
     let mainContainer: MainContainer
     weak var navigationController: UINavigationController?
 
-    init(
-        /* wiring:dependency */ mainContainer: MainContainer
-    ) {
+    init(/* wiring:dependency */ mainContainer: MainContainer) {
         self.mainContainer = mainContainer
     }
 
