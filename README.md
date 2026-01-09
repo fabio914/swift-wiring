@@ -197,7 +197,11 @@ swift-wiring inject <source files> -o <output file with your Containers>
 
 Navigate to the `Example/` folder and use [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate an Xcode project of an iOS app that uses this tool.
 
-You can install this command line tool with [Mint](https://github.com/yonaskolb/Mint).
+You can install this command line tool with [Mint](https://github.com/yonaskolb/Mint):
+
+```shell
+mint install fabio914/swift-wiring@main
+```
 
 ## TO-DOs
 
