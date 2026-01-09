@@ -8,10 +8,7 @@ public final class InitialCoordinator: CoordinatorProtocol {
 
     weak var rootViewController: InitialContainerViewController?
 
-    init(
-        /* wiring:dependency */
-        appContainer: AppContainer
-    ) {
+    init(/* wiring:dependency */ appContainer: AppContainer) {
         self.appContainer = appContainer
     }
 

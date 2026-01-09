@@ -10,11 +10,7 @@ final class UserViewModel: UserViewModelProtocol {
     private let user: User
     private let logger: LoggerProtocol
 
-    init(
-        /* wiring:dependency */ user: User,
-        /* wiring:dependency */ logger: LoggerProtocol,
-        coordinator: UserCoordinatorProtocol
-    ) {
+    init(/* wiring:dependency */ user: User, /* wiring:dependency */ logger: LoggerProtocol, coordinator: UserCoordinatorProtocol) {
         self.user = user
         self.logger = logger
         self.coordinator = coordinator

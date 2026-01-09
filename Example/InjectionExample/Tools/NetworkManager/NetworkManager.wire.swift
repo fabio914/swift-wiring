@@ -9,9 +9,7 @@ final class NetworkManager: NetworkManagerProtocol {
 
     let sessionManager: SessionManagerProtocol
 
-    init(
-        /* wiring:dependency */ sessionManager: SessionManagerProtocol
-    ) {
+    init(/* wiring:dependency */ sessionManager: SessionManagerProtocol) {
         self.sessionManager = sessionManager
     }
 

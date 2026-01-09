@@ -47,9 +47,22 @@ struct InitializerDefinition: CustomStringConvertible {
             )
         }
 
-        self.parameters = try initializerDeclaration.signature.parameterClause.parameters.compactMap { parameter in
-            try ParameterDefinition(converter: converter, functionParameter: parameter)
+        var parameters: [ParameterDefinition] = []
+        var previousTrivia = initializerDeclaration.signature.parameterClause.leftParen.trailingTrivia
+
+        try initializerDeclaration.signature.parameterClause.parameters.forEach { parameter in
+            parameters.append(
+                try ParameterDefinition(
+                    converter: converter,
+                    previousTrailingTrivia: previousTrivia,
+                    functionParameter: parameter
+                )
+            )
+
+            previousTrivia = parameter.trailingTrivia
         }
+
+        self.parameters = parameters
     }
 
     var dependencies: [InitializerDependencyDefinition] {
@@ -90,11 +103,16 @@ struct ParameterDefinition: CustomStringConvertible {
 
     init(
         converter: SourceLocationConverter,
+        previousTrailingTrivia: Trivia,
         functionParameter: FunctionParameterSyntax
     ) throws {
         self.functionParameter = functionParameter
 
-        if let dependency = try dependencyCommand(converter: converter, item: functionParameter) {
+        if let dependency = try dependencyCommand(
+            converter: converter,
+            previousTrailingTrivia: previousTrailingTrivia,
+            item: functionParameter
+        ) {
             self.kind = .dependency(dependency)
         } else {
             self.kind = .parameter(functionParameter.firstName.text)
@@ -124,10 +142,12 @@ struct InitializerDependencyDefinition: CustomStringConvertible {
 
 private func hasDependencyCommand(
     converter: SourceLocationConverter,
+    previousTrailingTrivia: Trivia,
     item: FunctionParameterSyntax
 ) throws -> Bool {
     do {
-        let wiringCommand = try item.leadingTrivia.wiringCommand()
+        let trivia = previousTrailingTrivia + item.leadingTrivia
+        let wiringCommand = try trivia.wiringCommand()
 
         switch wiringCommand {
         case .dependency:
@@ -152,9 +172,14 @@ private func hasDependencyCommand(
 ///
 private func dependencyCommand(
     converter: SourceLocationConverter,
+    previousTrailingTrivia: Trivia,
     item: FunctionParameterSyntax
 ) throws -> InitializerDependencyDefinition? {
-    guard try hasDependencyCommand(converter: converter, item: item) else {
+    guard try hasDependencyCommand(
+        converter: converter,
+        previousTrailingTrivia: previousTrailingTrivia,
+        item: item
+    ) else {
         return nil
     }
 
