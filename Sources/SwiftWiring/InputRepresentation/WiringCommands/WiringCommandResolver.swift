@@ -22,8 +22,8 @@ enum WiringCommand {
         case access(AccessLevel)
         case bind(ClassOrFunctionName, BindingName, [BindingCommand])
         case singletonBind(ClassOrFunctionName, BindingName, [BindingCommand])
-        case instance(ClassName, [BindingCommand])
-        case singleton(ClassName, [BindingCommand])
+        case instance(ClassOrFunctionName, [BindingCommand])
+        case singleton(ClassOrFunctionName, [BindingCommand])
     }
 
     case empty

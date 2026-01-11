@@ -10,13 +10,7 @@ final class SettingsViewModel: SettingsViewModelProtocol {
     private let session: Session
     private let logger: LoggerProtocol
     private let sessionManager: SessionManagerProtocol
-
-    private lazy var dateFormatter: DateFormatter = {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .short
-        dateFormatter.timeStyle = .short
-        return dateFormatter
-    }()
+    private let dateFormatter: DateFormatter
 
     var sessionTime: String {
         dateFormatter.string(from: session.time)
@@ -26,11 +20,13 @@ final class SettingsViewModel: SettingsViewModelProtocol {
         /* wiring:dependency */ session: Session,
         /* wiring:dependency */ sessionManager: SessionManagerProtocol,
         /* wiring:dependency */ logger: LoggerProtocol,
+        /* wiring:dependency(Short) */ dateFormatter: DateFormatter,
         coordinator: SettingsCoordinatorProtocol
     ) {
         self.session = session
         self.sessionManager = sessionManager
         self.logger = logger
+        self.dateFormatter = dateFormatter
         self.coordinator = coordinator
     }
 
