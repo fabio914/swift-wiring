@@ -3,7 +3,7 @@ import Foundation
 typealias BindingName = String // Protocol or the Class own name
 typealias ClassName = String
 typealias ContainerName = String
-//typealias Name = String
+typealias Name = String
 
 enum AccessLevel {
     case `public`
@@ -13,9 +13,7 @@ enum AccessLevel {
 enum WiringCommand {
     enum BindingCommand {
         case access(AccessLevel)
-
-        // TODO: Support named dependencies
-//        case name(Name)
+        case name(Name)
     }
 
     enum ContainerCommand {
@@ -28,14 +26,13 @@ enum WiringCommand {
 
     case empty
     case inject
-    // TODO: Implement named dependencies
-    case dependency
+    case dependency(Name?)
     case container(containerName: ContainerName, commands: [ContainerCommand])
 }
 
 enum CommandResolverError: Error {
     case multipleCommands
-    case invalidNumberOfArgumentsFor(command: String, expected: Int)
+    case invalidNumberOfArgumentsFor(command: String, expected: ClosedRange<Int>)
     case unexpectedBodyFor(command: String)
     case missingBodyFor(command: String)
     case unrecognizedCommand(String)
@@ -63,8 +60,8 @@ final class WiringCommandResolver {
             try verifyCommand(firstCommand, named: "inject", withArguments: 0, andBody: .empty)
             return .inject
         case "dependency":
-            try verifyCommand(firstCommand, named: "dependency", withArguments: 0, andBody: .empty)
-            return .dependency
+            try verifyCommand(firstCommand, named: "dependency", withArgumentsRange: 0...1, andBody: .empty)
+            return .dependency(firstCommand.arguments.first)
         case "container":
             try verifyCommand(firstCommand, named: "container", withArguments: 1, andBody: .required)
             return .container(
@@ -112,6 +109,9 @@ final class WiringCommandResolver {
         switch rawCommand.name {
         case "access":
             return .access(try resolveAccessCommand(rawCommand))
+        case "name":
+            try verifyCommand(rawCommand, named: "name", withArguments: 1, andBody: .empty)
+            return .name(rawCommand.arguments[0])
         default:
             throw CommandResolverError.unrecognizedCommand(rawCommand.name)
         }
@@ -140,11 +140,11 @@ final class WiringCommandResolver {
     private static func verifyCommand(
         _ rawCommand: CommandParser.Command,
         named command: String,
-        withArguments countOfArguments: Int,
+        withArgumentsRange argumentRange: ClosedRange<Int>,
         andBody bodyType: BodyType
     ) throws {
-        guard rawCommand.arguments.count == countOfArguments else {
-            throw CommandResolverError.invalidNumberOfArgumentsFor(command: command, expected: countOfArguments)
+        guard argumentRange.contains(rawCommand.arguments.count) else {
+            throw CommandResolverError.invalidNumberOfArgumentsFor(command: command, expected: argumentRange)
         }
 
         switch bodyType {
@@ -159,6 +159,15 @@ final class WiringCommandResolver {
         case .optional:
             break
         }
+    }
+
+    private static func verifyCommand(
+        _ rawCommand: CommandParser.Command,
+        named command: String,
+        withArguments argumentCount: Int,
+        andBody bodyType: BodyType
+    ) throws {
+        try verifyCommand(rawCommand, named: command, withArgumentsRange: argumentCount...argumentCount, andBody: bodyType)
     }
 }
 
