@@ -26,6 +26,7 @@ enum WiringCommand {
 
     case empty
     case inject
+    // case provider
     case dependency(Name?)
     case container(containerName: ContainerName, commands: [ContainerCommand])
 }
@@ -61,7 +62,11 @@ final class WiringCommandResolver {
             return .inject
         case "dependency":
             try verifyCommand(firstCommand, named: "dependency", withArgumentsRange: 0...1, andBody: .empty)
-            return .dependency(firstCommand.arguments.first)
+
+            return .dependency({ () -> Name? in
+                guard let name = firstCommand.arguments.first, !name.isEmpty else { return nil }
+                return name
+            }())
         case "container":
             try verifyCommand(firstCommand, named: "container", withArguments: 1, andBody: .required)
             return .container(
@@ -183,6 +188,17 @@ extension Array where Element == WiringCommand.BindingCommand {
             return level
         }
         .last ?? .internal
+    }
+
+    var name: Name? {
+        compactMap {
+            guard case let .name(string) = $0, !string.isEmpty else {
+                return nil
+            }
+
+            return string
+        }
+        .last
     }
 }
 

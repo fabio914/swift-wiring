@@ -21,15 +21,15 @@ final class ContainerOutput {
     }
 
     private func buildFunctionNameFor(definition: DependencyDefinition) -> String {
-        "build\(definition.bindingName.CamelCased)"
+        "build\(definition.identifier.description.CamelCased)"
     }
 
     private func singletonNameFor(definition: DependencyDefinition) -> String {
-        "singleton\(definition.bindingName.CamelCased)"
+        "singleton\(definition.identifier.description.CamelCased)"
     }
 
     private func externalClosureNameFor(definition: ExternalDependency) -> String {
-        "external\(definition.protocolName.CamelCased)"
+        "external\(definition.identifier.description.CamelCased)"
     }
 
     // MARK: - Build function
@@ -60,7 +60,7 @@ final class ContainerOutput {
             returnClause: ReturnClauseSyntax(
                 type: IdentifierTypeSyntax(
                     leadingTrivia: .space,
-                    name: .identifier(resolvedDependency.definition.bindingName)
+                    name: .identifier(resolvedDependency.definition.identifier.bindingName)
                 ),
                 trailingTrivia: .space
             )
@@ -77,7 +77,7 @@ final class ContainerOutput {
             .compactMap { parameter in
                 switch parameter.kind {
                 case .dependency(let dependencyDefinition):
-                    guard let dependency = resolvedDependency.dependencies[dependencyDefinition.type] else {
+                    guard let dependency = resolvedDependency.dependencies[dependencyDefinition.identifier] else {
                         // If we resolved this correctly, then this should never happen
                         return nil
                     }
@@ -237,7 +237,7 @@ final class ContainerOutput {
                     typeAnnotation: TypeAnnotationSyntax(
                         type: IdentifierTypeSyntax(
                             leadingTrivia: .space,
-                            name: .identifier(resolvedDependency.definition.bindingName),
+                            name: .identifier(resolvedDependency.definition.identifier.bindingName),
                             trailingTrivia: .space
                         )
                     ),
@@ -270,7 +270,7 @@ final class ContainerOutput {
                 leadingTrivia: .space,
                 type: IdentifierTypeSyntax(
                     leadingTrivia: .space,
-                    name: .identifier(externalDependency.protocolName)
+                    name: .identifier(externalDependency.identifier.bindingName)
                 )
             )
         )
@@ -299,7 +299,7 @@ final class ContainerOutput {
     // MARK: - Initializer
 
     private func parameterNameFor(externalDependency: ExternalDependency) -> String {
-        externalDependency.protocolName.camelCased
+        externalDependency.identifier.description.camelCased
     }
 
     private func initializer(with externalDependencies: [ExternalDependency]) -> DeclSyntax {

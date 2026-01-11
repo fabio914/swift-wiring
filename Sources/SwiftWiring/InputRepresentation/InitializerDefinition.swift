@@ -133,27 +133,31 @@ enum DependencyDefinitionError: Error {
 
 struct InitializerDependencyDefinition: CustomStringConvertible {
     let parameterName: String
-    let type: String
+    let identifier: DependencyIdentifier
 
     var description: String {
-        "InitializerDependencyDefinition(\(parameterName), \(type))"
+        "InitializerDependencyDefinition(\(parameterName), \(identifier))"
     }
 }
 
-private func hasDependencyCommand(
+private struct DependencyCommand {
+    let name: Name?
+}
+
+private func parseDependencyCommand(
     converter: SourceLocationConverter,
     previousTrailingTrivia: Trivia,
     item: FunctionParameterSyntax
-) throws -> Bool {
+) throws -> DependencyCommand? {
     do {
         let trivia = previousTrailingTrivia + item.leadingTrivia
         let wiringCommand = try trivia.wiringCommand()
 
         switch wiringCommand {
-        case .dependency:
-            return true
+        case .dependency(let name):
+            return DependencyCommand(name: name)
         case .empty:
-            return false
+            return nil
         default:
             throw DependencyDefinitionError.expectedDependencyCommand(found: wiringCommand)
         }
@@ -166,7 +170,7 @@ private func hasDependencyCommand(
 }
 
 ///
-/// Detects a `wiring: dependency` in a Function Parameter
+/// Detects a `wiring: dependency` or `wiring: dependency(SomeName)` in a Function Parameter
 /// Example:
 ///   /* wiring: dependency */ someDependency: SomeDependencyProtocol
 ///
@@ -175,7 +179,7 @@ private func dependencyCommand(
     previousTrailingTrivia: Trivia,
     item: FunctionParameterSyntax
 ) throws -> InitializerDependencyDefinition? {
-    guard try hasDependencyCommand(
+    guard let dependency = try parseDependencyCommand(
         converter: converter,
         previousTrailingTrivia: previousTrailingTrivia,
         item: item
@@ -208,6 +212,9 @@ private func dependencyCommand(
 
     return InitializerDependencyDefinition(
         parameterName: item.firstName.text,
-        type: identifier.name.text
+        identifier: DependencyIdentifier(
+            bindingName: identifier.name.text,
+            name: dependency.name
+        )
     )
 }
