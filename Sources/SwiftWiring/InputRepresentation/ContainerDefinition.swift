@@ -80,6 +80,33 @@ struct DependencyDefinition: CustomStringConvertible {
             return nil
         }
     }
+
+    private init(
+        kind: Kind,
+        bindingType: BindingType,
+        classOrFunctionName: ClassOrFunctionName,
+        sourceLocation: SourceLocation,
+        accessLevel: AccessLevel,
+        identifier: DependencyIdentifier
+    ) {
+        self.kind = kind
+        self.bindingType = bindingType
+        self.classOrFunctionName = classOrFunctionName
+        self.sourceLocation = sourceLocation
+        self.accessLevel = accessLevel
+        self.identifier = identifier
+    }
+
+    func updating(identifier: DependencyIdentifier) -> Self {
+        .init(
+            kind: self.kind,
+            bindingType: self.bindingType,
+            classOrFunctionName: self.classOrFunctionName,
+            sourceLocation: self.sourceLocation,
+            accessLevel: self.accessLevel,
+            identifier: identifier
+        )
+    }
 }
 
 ///

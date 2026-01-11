@@ -25,6 +25,10 @@ import Foundation
 //   instance(LoggedOutApi) { access(public) }
 //   bind(OtherApi, ApiClient) { access(public) name(Other) }
 //   bind(UserInfoApi, ApiClient) { name(User) }
+//
+//   instance(providesUserName) { name(UserName) }
+//   bind(providesUserEmail, String) { name(UserEmail) }
+//   instance(UserViewModel)
 // }
 protocol MyContainerProtocol {
 }
@@ -107,6 +111,8 @@ public final class UserManager {
     let persistence: PersistenceProtocol
     let apiClient: ApiClient
     let sessionManager: SessionManager
+    let userName: String
+    let userEmail: String
 
     init(
         /* wiring: dependency(User) */ persistence: PersistenceProtocol,
@@ -116,6 +122,8 @@ public final class UserManager {
         self.persistence = persistence
         self.apiClient = apiClient
         self.sessionManager = sessionManager
+        self.userName = "Some name"
+        self.userEmail = "email@email.com"
     }
 }
 
@@ -141,6 +149,33 @@ final class UserDataPersistence: PersistenceProtocol {
     init() {}
 }
 
+// wiring: inject
+func providesUserName(
+    /* wiring: dependency */ userManager: UserManager
+) -> String {
+    userManager.userName
+}
+
+// wiring: inject
+func providesUserEmail(
+    /* wiring: dependency */ userManager: UserManager
+) -> String {
+    userManager.userEmail
+}
+
+// wiring: inject
+final class UserViewModel {
+    let userName: String
+    let userEmail: String
+
+    init(
+        /* wiring: dependency(UserName) */ userName: String,
+        /* wiring: dependency(UserEmail) */ userEmail: String
+    ) {
+        self.userName = userName
+        self.userEmail = userEmail
+    }
+}
 ```
 
 **Output**
@@ -213,6 +248,12 @@ public final class MyContainer: MyContainerProtocol {
         )
     }
 
+    internal func buildUserEmailString() -> String {
+        return providesUserEmail(
+            userManager: self.singletonUserManager
+        )
+    }
+
     private func buildUserManager() -> UserManager {
         return UserManager(
             persistence: self.singletonUserPersistenceProtocol,
@@ -220,8 +261,20 @@ public final class MyContainer: MyContainerProtocol {
             sessionManager: self.singletonSessionManager
         )
     }
-}
 
+    internal func buildUserViewModel() -> UserViewModel {
+        return UserViewModel(
+            userName: self.buildUserNameString(),
+            userEmail: self.buildUserEmailString()
+        )
+    }
+
+    internal func buildUserNameString() -> String {
+        return providesUserName(
+            userManager: self.singletonUserManager
+        )
+    }
+}
 ```
 
 ## Usage
@@ -242,7 +295,6 @@ mint install fabio914/swift-wiring@main
 
 ## TO-DOs
 
- - [ ] Add Providers;
  - [ ] Add Scopes with a collection of containers;
  - [ ] Support actors and main actors;
  - [ ] Support multiple initializers;

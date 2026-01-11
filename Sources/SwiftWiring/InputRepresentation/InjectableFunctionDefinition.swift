@@ -69,6 +69,17 @@ struct InjectableFunctionDefinition: CustomStringConvertible {
         }
     }
 
+    var hasParameters: Bool {
+        parameters.first(where: {
+            switch $0.kind {
+            case .parameter:
+                true
+            default:
+                false
+            }
+        }) != nil
+    }
+
     var description: String {
         "InjectableFunctionDefinition(\(functionName), \(bindingName), \(parameters))"
     }

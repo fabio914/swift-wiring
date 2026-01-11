@@ -38,7 +38,7 @@ final class ContainerOutput {
         FunctionSignatureSyntax(
             parameterClause: FunctionParameterClauseSyntax(
                 parameters: FunctionParameterListSyntax {
-                    let parameters = resolvedDependency.injectableClass.initializerDefinition.parameters
+                    let parameters = resolvedDependency.injectable.parameters
                         .filter { if case .parameter = $0.kind { true } else { false } }
 
                     for i in 0 ..< parameters.count {
@@ -73,7 +73,7 @@ final class ContainerOutput {
     }
 
     private func makeInitializerArguments(for resolvedDependency: ResolvedDependency) -> [InitializerArgument] {
-        resolvedDependency.injectableClass.initializerDefinition.parameters
+        resolvedDependency.injectable.parameters
             .compactMap { parameter in
                 switch parameter.kind {
                 case .dependency(let dependencyDefinition):
@@ -148,7 +148,7 @@ final class ContainerOutput {
         FunctionCallExprSyntax(
             leadingTrivia: .space,
             calledExpression: DeclReferenceExprSyntax(
-                baseName: .identifier(resolvedDependency.injectableClass.className)
+                baseName: .identifier(resolvedDependency.injectable.classOrFunctionName)
             ),
             leftParen: .leftParenToken(),
             arguments: LabeledExprListSyntax {
