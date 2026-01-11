@@ -89,6 +89,8 @@ internal final class MainContainer: MainContainerProtocol {
 
     let externalUser: () -> User
 
+    private(set) lazy var singletonShortDateFormatter: DateFormatter = buildShortDateFormatter()
+
     public init(
         loggerProtocol: @autoclosure @escaping () -> LoggerProtocol,
         session: @autoclosure @escaping () -> Session,
@@ -99,6 +101,11 @@ internal final class MainContainer: MainContainerProtocol {
         self.externalSession = session
         self.externalSessionManagerProtocol = sessionManagerProtocol
         self.externalUser = user
+    }
+
+    private func buildShortDateFormatter() -> DateFormatter {
+        return providesShortDateFormatter(
+        )
     }
 
     internal func buildMainCoordinator() -> MainCoordinator {
@@ -120,7 +127,14 @@ internal final class MainContainer: MainContainerProtocol {
             session: self.externalSession(),
             sessionManager: self.externalSessionManagerProtocol(),
             logger: self.externalLoggerProtocol(),
+            dateFormatter: self.singletonShortDateFormatter,
             coordinator: coordinator
+        )
+    }
+
+    internal func buildUserNameString() -> String {
+        return providesUserName(
+            user: self.externalUser()
         )
     }
 
@@ -134,7 +148,7 @@ internal final class MainContainer: MainContainerProtocol {
         coordinator: UserCoordinatorProtocol
     ) -> UserViewModel {
         return UserViewModel(
-            user: self.externalUser(),
+            name: self.buildUserNameString(),
             logger: self.externalLoggerProtocol(),
             coordinator: coordinator
         )

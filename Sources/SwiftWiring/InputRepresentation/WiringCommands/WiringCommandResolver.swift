@@ -2,6 +2,8 @@ import Foundation
 
 typealias BindingName = String // Protocol or the Class own name
 typealias ClassName = String
+typealias FunctionName = String
+typealias ClassOrFunctionName = String
 typealias ContainerName = String
 typealias Name = String
 
@@ -18,15 +20,14 @@ enum WiringCommand {
 
     enum ContainerCommand {
         case access(AccessLevel)
-        case bind(ClassName, BindingName, [BindingCommand])
-        case singletonBind(ClassName, BindingName, [BindingCommand])
-        case instance(ClassName, [BindingCommand])
-        case singleton(ClassName, [BindingCommand])
+        case bind(ClassOrFunctionName, BindingName, [BindingCommand])
+        case singletonBind(ClassOrFunctionName, BindingName, [BindingCommand])
+        case instance(ClassOrFunctionName, [BindingCommand])
+        case singleton(ClassOrFunctionName, [BindingCommand])
     }
 
     case empty
     case inject
-    // case provider
     case dependency(Name?)
     case container(containerName: ContainerName, commands: [ContainerCommand])
 }

@@ -1,14 +1,14 @@
 import Foundation
 
-enum InjectableClassCollectionError: Error {
-    case classWithThisNameAlreadyExists(String)
+enum InjectableCollectionError: Error {
+    case injectableWithThisNameAlreadyExists(ClassOrFunctionName)
 }
 
-struct InjectableClassCollection {
-    let byBinding: [BindingName: [ClassName: InjectableClassDefinition]]
+struct InjectableCollection {
+    let byBinding: [BindingName: [ClassOrFunctionName: Injectable]]
 
     init(sources: [SourceDefinition]) throws {
-        var byBinding: [BindingName: [ClassName: InjectableClassDefinition]] = [:]
+        var byBinding: [BindingName: [ClassOrFunctionName: Injectable]] = [:]
 
         for injectableClass in sources.flatMap(\.injectableClasses) {
             let namesToCheck: [BindingName] = injectableClass.inheritanceChain + [injectableClass.className]
@@ -16,14 +16,34 @@ struct InjectableClassCollection {
             for bindingName in namesToCheck {
                 var current = byBinding[bindingName, default: [:]]
 
-                if let existingClassDefinition = current[injectableClass.className] {
+                if let existingDefinition = current[injectableClass.className] {
                     throw InputFileError(
                         location: injectableClass.sourceLocation,
-                        error: InjectableClassCollectionError.classWithThisNameAlreadyExists(existingClassDefinition.className)
+                        error: InjectableCollectionError.injectableWithThisNameAlreadyExists(existingDefinition.classOrFunctionName)
                     )
                 }
 
-                current[injectableClass.className] = injectableClass
+                current[injectableClass.className] = .class(injectableClass)
+                byBinding[bindingName] = current
+            }
+        }
+
+        for injectableFunction in sources.flatMap(\.injectableFunctions) {
+            // Adding the `injectableFunction.functionName` here too so we're able to find
+            // injectable functions for `instance(functionName)` and `singleton(functionName)` cases
+            let namesToCheck: [BindingName] = [injectableFunction.bindingName, injectableFunction.functionName]
+
+            for bindingName in namesToCheck {
+                var current = byBinding[bindingName, default: [:]]
+
+                if let existingDefinition = current[injectableFunction.functionName] {
+                    throw InputFileError(
+                        location: injectableFunction.sourceLocation,
+                        error: InjectableCollectionError.injectableWithThisNameAlreadyExists(existingDefinition.classOrFunctionName)
+                    )
+                }
+
+                current[injectableFunction.functionName] = .function(injectableFunction)
                 byBinding[bindingName] = current
             }
         }
@@ -72,14 +92,10 @@ struct ExternalDependency: Hashable, CustomStringConvertible {
 
 struct InternalDependency: CustomStringConvertible {
     let definition: DependencyDefinition
-    let injectableClass: InjectableClassDefinition
-
-    var dependencyIdentifiers: [DependencyIdentifier] {
-        injectableClass.initializerDefinition.dependencies.map(\.identifier)
-    }
+    let injectable: Injectable
 
     var description: String {
-        "InternalDependency(\(definition), \(injectableClass))"
+        "InternalDependency(\(definition), \(injectable))"
     }
 }
 
@@ -110,18 +126,18 @@ enum DependencyType: CustomStringConvertible {
 
 struct ResolvedDependency: CustomStringConvertible {
     let definition: DependencyDefinition
-    let injectableClass: InjectableClassDefinition
+    let injectable: Injectable
     let dependencies: [DependencyIdentifier: DependencyType]
 
     var description: String {
-        "ResolvedDependency(\(definition), \(injectableClass), \(dependencies))"
+        "ResolvedDependency(\(definition), \(injectable), \(dependencies))"
     }
 }
 
 enum ResolvedContainerError: Error {
-    case missingClassFor(ClassName, BindingName)
-    case singletonClassCannotHaveParameters(ClassName)
-    case classDependsOnClassThatRequireParameters(ClassName)
+    case missingInjectableFor(ClassOrFunctionName, BindingName)
+    case singletonCannotHaveParameters(ClassOrFunctionName)
+    case classDependsOnClassThatRequireParameters(ClassOrFunctionName)
     case dependencyCycleDetected(String)
 }
 
@@ -131,7 +147,7 @@ struct ResolvedContainer: CustomStringConvertible {
     let externalDependencies: [ExternalDependency]
     let resolvedDependencies: [ResolvedDependency]
 
-    init(containerDefinition: ContainerDefinition, injectableClasses: InjectableClassCollection) throws {
+    init(containerDefinition: ContainerDefinition, injectables: InjectableCollection) throws {
         self.containerDefinition = containerDefinition
 
         // Collecting unresolved dependencies
@@ -140,14 +156,29 @@ struct ResolvedContainer: CustomStringConvertible {
         var dependencyDefinitionMap: [DependencyIdentifier: InternalDependency] = [:]
 
         for dependency in containerDefinition.dependencies {
-            if let injectableClassDefinition = injectableClasses.byBinding[dependency.identifier.bindingName]?[dependency.className] {
-                let internalDependency = InternalDependency(definition: dependency, injectableClass: injectableClassDefinition)
-                dependencyDefinitionMap[dependency.identifier] = internalDependency
+            if let injectableDefinition = injectables.byBinding[dependency.identifier.bindingName]?[dependency.classOrFunctionName] {
+
+                let identifier = switch injectableDefinition {
+                case .class:
+                    dependency.identifier
+                case .function(let injectableFunction):
+                    // Transforming dependency identifiers for the `instance(functionName)` and `singleton(functionName)`
+                    // cases when we don't specify a separate `BindingName`.
+                    // Replacing the potential function name with the binding name from the injectable function we found.
+                    DependencyIdentifier(bindingName: injectableFunction.bindingName, name: dependency.identifier.name)
+                }
+
+                let internalDependency = InternalDependency(
+                    definition: dependency.updating(identifier: identifier),
+                    injectable: injectableDefinition
+                )
+
+                dependencyDefinitionMap[identifier] = internalDependency
                 unresolvedInternalDependencies.append(internalDependency)
             } else {
                 throw InputFileError(
                     location: containerDefinition.sourceLocation,
-                    error: ResolvedContainerError.missingClassFor(dependency.className, dependency.identifier.bindingName)
+                    error: ResolvedContainerError.missingInjectableFor(dependency.classOrFunctionName, dependency.identifier.bindingName)
                 )
             }
         }
@@ -161,26 +192,26 @@ struct ResolvedContainer: CustomStringConvertible {
         for unresolvedInternalDependency in unresolvedInternalDependencies {
             // Singletons cannot have parameters.
             if case .singleton = unresolvedInternalDependency.definition.kind,
-               unresolvedInternalDependency.injectableClass.initializerDefinition.hasParameters {
+               unresolvedInternalDependency.injectable.hasParameters {
                 throw InputFileError(
-                    location: unresolvedInternalDependency.injectableClass.sourceLocation,
-                    error: ResolvedContainerError.singletonClassCannotHaveParameters(unresolvedInternalDependency.injectableClass.className)
+                    location: unresolvedInternalDependency.injectable.sourceLocation,
+                    error: ResolvedContainerError.singletonCannotHaveParameters(unresolvedInternalDependency.injectable.classOrFunctionName)
                 )
             }
 
             var dependencyTypes: [DependencyIdentifier: DependencyType] = [:]
 
-            for dependencyIdentifier in unresolvedInternalDependency.dependencyIdentifiers {
+            for dependencyIdentifier in unresolvedInternalDependency.injectable.dependencyIdentifiers {
                 if let definition = dependencyDefinitionMap[dependencyIdentifier] {
                     // Instances and Singletons can only depend on other Instances
                     // or Singletons that take no parameters, or external dependencies.
                     // (Otherwise its `build` function would need to contain its
                     // own parameters and the dependency's parameters too, and etc)
 
-                    if definition.injectableClass.initializerDefinition.hasParameters {
+                    if definition.injectable.hasParameters {
                         throw InputFileError(
-                            location: unresolvedInternalDependency.injectableClass.sourceLocation,
-                            error: ResolvedContainerError.classDependsOnClassThatRequireParameters(definition.injectableClass.className)
+                            location: unresolvedInternalDependency.injectable.sourceLocation,
+                            error: ResolvedContainerError.classDependsOnClassThatRequireParameters(definition.injectable.classOrFunctionName)
                         )
                     }
 
@@ -205,7 +236,7 @@ struct ResolvedContainer: CustomStringConvertible {
             resolvedDependencies.append(
                 ResolvedDependency(
                     definition: unresolvedInternalDependency.definition,
-                    injectableClass: unresolvedInternalDependency.injectableClass,
+                    injectable: unresolvedInternalDependency.injectable,
                     dependencies: dependencyTypes
                 )
             )
@@ -242,10 +273,10 @@ struct DependencyResolver {
         }
 
         let containers = try ContainerCollection(sources: sources)
-        let injectableClasses = try InjectableClassCollection(sources: sources)
+        let injectables = try InjectableCollection(sources: sources)
 
         self.resolvedContainers = try containers.containers.map {
-            try ResolvedContainer(containerDefinition: $0, injectableClasses: injectableClasses)
+            try ResolvedContainer(containerDefinition: $0, injectables: injectables)
         }
     }
 }
