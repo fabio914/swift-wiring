@@ -12,113 +12,135 @@ import Foundation
 
 // wiring: container(MyContainer) {
 //   access(public)
-//   bind(MyClass, SomeProtocol)
-//   singletonBind(MySingleton, SomeOtherProtocol) { access(public) }
-//   singleton(AnotherSingleton)
-//   instance(SomeInstance) { access(public) }
-//   instance(SomeInstanceWithoutParameters)
+//
+//   singleton(SessionManager)
+//   singleton(UserManager) { access(public) }
+//
+//   singletonBind(UserDataPersistence, PersistenceProtocol) { name(User) }
+//   singletonBind(SessionDataPersistence, PersistenceProtocol) { name(Session) }
+//
+//   bind(NetworkManager, NetworkManagerProtocol)
+//   bind(AuthNetworkManager, NetworkManagerProtocol) { name(Authenticated) }
+//
+//   instance(LoggedOutApi) { access(public) }
+//   bind(OtherApi, ApiClient) { access(public) name(Other) }
+//   bind(UserInfoApi, ApiClient) { name(User) }
 // }
 protocol MyContainerProtocol {
 }
 
-// wiring: inject
-final class MyClass: SomeProtocol {
+public protocol ApiClient {}
 
-    let instance: SomeInstanceWithoutParameters
-    let someDependency: SomeDependency
-    let anotherDependency: AnotherDependency
-    let singleton: SomeOtherProtocol
-    let parameter: Int
-
-    init(
-        // wiring: dependency
-        instance: SomeInstanceWithoutParameters,
-        // wiring: dependency
-        someDependency: SomeDependency,
-        // wiring: dependency
-        anotherDependency: AnotherDependency,
-        // wiring: dependency
-        singleton: SomeOtherProtocol,
-        parameter value: Int,
-        otherParameter: Array<Int>,
-        /* wiring:dependency */ container: MyContainerProtocol
-    ) {
-        self.instance = instance
-        self.someDependency = someDependency
-        self.anotherDependency = anotherDependency
-        self.singleton = singleton
-        self.parameter = value
-    }
-
-    func someFunction() -> Int {
-        return parameter
-    }
-}
+protocol SomethingExternal {}
 
 // wiring: inject
-class MySingleton: SomeOtherProtocol {
-
-    let someDependency: SomeDependency
-
-    init(
-        /* wiring:dependency */ someDependency: SomeDependency
-    ) {
-        self.someDependency = someDependency
-    }
-}
-
-//wiring:inject
-class AnotherSingleton {
-    let firstSingleton: SomeOtherProtocol
-
-    init(
-        //wiring:dependency
-        firstSingleton: SomeOtherProtocol
-    ) {
-        self.firstSingleton = firstSingleton
-    }
-}
-
-// wiring: inject
-class SomeInstance {
-    let firstSingleton: SomeOtherProtocol
-    let parameter: Int
+final class LoggedOutApi: ApiClient {
+    let networkManager: NetworkManagerProtocol
+    let something: SomethingExternal
+    let parameter: String
 
     init(
         // wiring: dependency
-        firstSingleton: SomeOtherProtocol,
-        parameter: Int
+        networkManager: NetworkManagerProtocol,
+        // wiring: dependency
+        something: SomethingExternal,
+        parameter: String
     ) {
-        self.firstSingleton = firstSingleton
+        self.networkManager = networkManager
+        self.something = something
         self.parameter = parameter
     }
 }
 
 // wiring: inject
-class SomeInstanceWithoutParameters {
-    let firstSingleton: SomeOtherProtocol
-    let anotherSingleton: AnotherSingleton
+final class OtherApi: ApiClient {
+    let networkManager: NetworkManagerProtocol
 
     init(
         // wiring: dependency
-        firstSingleton: SomeOtherProtocol,
-        // wiring: dependency
-        anotherSingleton: AnotherSingleton
+        networkManager: NetworkManagerProtocol
     ) {
-        self.firstSingleton = firstSingleton
-        self.anotherSingleton = anotherSingleton
+        self.networkManager = networkManager
     }
 }
 
-protocol SomeProtocol {
-    func someFunction() -> Int
+// wiring: inject
+final class UserInfoApi: ApiClient {
+    let authNetworkManager: NetworkManagerProtocol
+    
+    init(
+        // wiring: dependency(Authenticated)
+        authNetworkManager: NetworkManagerProtocol
+    ) {
+        self.authNetworkManager = authNetworkManager
+    }
 }
 
-protocol SomeOtherProtocol {}
+protocol NetworkManagerProtocol {
+    func perform(request: URLRequest) async throws -> Data
+}
 
-protocol SomeDependency {}
+// wiring: inject
+final class NetworkManager: NetworkManagerProtocol {
+    init() {}
 
-protocol AnotherDependency {}
+    func perform(request: URLRequest) async throws -> Data {
+        Data()
+    }
+}
+
+// wiring: inject
+final class AuthNetworkManager: NetworkManagerProtocol {
+    let sessionManager: SessionManager
+
+    init(/* wiring: dependency */ sessionManager: SessionManager) {
+        self.sessionManager = sessionManager
+    }
+
+    func perform(request: URLRequest) async throws -> Data {
+        Data()
+    }
+}
+
+// wiring: inject
+public final class UserManager {
+    let persistence: PersistenceProtocol
+    let apiClient: ApiClient
+    let sessionManager: SessionManager
+
+    init(
+        /* wiring: dependency(User) */ persistence: PersistenceProtocol,
+        /* wiring: dependency(User) */ apiClient: ApiClient,
+        /* wiring: dependency */ sessionManager: SessionManager
+    ) {
+        self.persistence = persistence
+        self.apiClient = apiClient
+        self.sessionManager = sessionManager
+    }
+}
+
+// wiring: inject
+final class SessionManager {
+    let persistence: PersistenceProtocol
+
+    init(/* wiring: dependency(Session) */ persistence: PersistenceProtocol) {
+        self.persistence = persistence
+    }
+}
+
+protocol PersistenceProtocol {
+}
+
+// wiring: inject
+final class SessionDataPersistence: PersistenceProtocol {
+    init() {}
+}
+
+// wiring: inject
+final class UserDataPersistence: PersistenceProtocol {
+    init() {}
+}
+
 ```
 
 **Output**
@@ -126,65 +148,80 @@ protocol AnotherDependency {}
 import Foundation
 
 public final class MyContainer: MyContainerProtocol {
-    let externalAnotherDependency: () -> AnotherDependency
+    let externalSomethingExternal: () -> SomethingExternal
 
-    let externalSomeDependency: () -> SomeDependency
+    private(set) lazy var singletonSessionPersistenceProtocol: PersistenceProtocol = buildSessionPersistenceProtocol()
 
-    private(set) lazy var singletonAnotherSingleton: AnotherSingleton = buildAnotherSingleton()
+    private(set) lazy var singletonUserPersistenceProtocol: PersistenceProtocol = buildUserPersistenceProtocol()
 
-    public private(set) lazy var singletonSomeOtherProtocol: SomeOtherProtocol = buildSomeOtherProtocol()
+    private(set) lazy var singletonSessionManager: SessionManager = buildSessionManager()
+
+    public private(set) lazy var singletonUserManager: UserManager = buildUserManager()
 
     public init(
-        anotherDependency: @autoclosure @escaping () -> AnotherDependency,
-        someDependency: @autoclosure @escaping () -> SomeDependency
+        somethingExternal: @autoclosure @escaping () -> SomethingExternal
     ) {
-        self.externalAnotherDependency = anotherDependency
-        self.externalSomeDependency = someDependency
+        self.externalSomethingExternal = somethingExternal
     }
 
-    private func buildAnotherSingleton() -> AnotherSingleton {
-        return AnotherSingleton(
-            firstSingleton: self.singletonSomeOtherProtocol
+    public func buildOtherApiClient() -> ApiClient {
+        return OtherApi(
+            networkManager: self.buildNetworkManagerProtocol()
         )
     }
 
-    public func buildSomeInstance(
-        parameter: Int
-    ) -> SomeInstance {
-        return SomeInstance(
-            firstSingleton: self.singletonSomeOtherProtocol,
+    internal func buildUserApiClient() -> ApiClient {
+        return UserInfoApi(
+            authNetworkManager: self.buildAuthenticatedNetworkManagerProtocol()
+        )
+    }
+
+    public func buildLoggedOutApi(
+        parameter: String
+    ) -> LoggedOutApi {
+        return LoggedOutApi(
+            networkManager: self.buildNetworkManagerProtocol(),
+            something: self.externalSomethingExternal(),
             parameter: parameter
         )
     }
 
-    internal func buildSomeInstanceWithoutParameters() -> SomeInstanceWithoutParameters {
-        return SomeInstanceWithoutParameters(
-            firstSingleton: self.singletonSomeOtherProtocol,
-            anotherSingleton: self.singletonAnotherSingleton
+    internal func buildNetworkManagerProtocol() -> NetworkManagerProtocol {
+        return NetworkManager(
         )
     }
 
-    private func buildSomeOtherProtocol() -> SomeOtherProtocol {
-        return MySingleton(
-            someDependency: self.externalSomeDependency()
+    internal func buildAuthenticatedNetworkManagerProtocol() -> NetworkManagerProtocol {
+        return AuthNetworkManager(
+            sessionManager: self.singletonSessionManager
         )
     }
 
-    internal func buildSomeProtocol(
-        parameter: Int,
-        otherParameter: Array<Int>
-    ) -> SomeProtocol {
-        return MyClass(
-            instance: self.buildSomeInstanceWithoutParameters(),
-            someDependency: self.externalSomeDependency(),
-            anotherDependency: self.externalAnotherDependency(),
-            singleton: self.singletonSomeOtherProtocol,
-            parameter: parameter,
-            otherParameter: otherParameter,
-            container: self
+    private func buildSessionPersistenceProtocol() -> PersistenceProtocol {
+        return SessionDataPersistence(
+        )
+    }
+
+    private func buildUserPersistenceProtocol() -> PersistenceProtocol {
+        return UserDataPersistence(
+        )
+    }
+
+    private func buildSessionManager() -> SessionManager {
+        return SessionManager(
+            persistence: self.singletonSessionPersistenceProtocol
+        )
+    }
+
+    private func buildUserManager() -> UserManager {
+        return UserManager(
+            persistence: self.singletonUserPersistenceProtocol,
+            apiClient: self.buildUserApiClient(),
+            sessionManager: self.singletonSessionManager
         )
     }
 }
+
 ```
 
 ## Usage
@@ -205,10 +242,11 @@ mint install fabio914/swift-wiring@main
 
 ## TO-DOs
 
- - [ ] Named dependencies;
- - [ ] Allow containers to extend other containers;
+ - [ ] Add Providers;
+ - [ ] Add Scopes with a collection of containers;
  - [ ] Support actors and main actors;
  - [ ] Support multiple initializers;
+ 
  etc...
 
 ## Credits
