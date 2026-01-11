@@ -1,7 +1,7 @@
 import UIKit
 
 /* wiring:inject */
-public final class InitialCoordinator: CoordinatorProtocol {
+final class InitialCoordinator: CoordinatorProtocol {
 
     // Our Initial Coordinator is retaining the App Container
     let appContainer: AppContainer

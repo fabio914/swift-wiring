@@ -17,8 +17,9 @@ wiring: container(AppContainer) {
   singletonBind(NetworkManager, NetworkManagerProtocol)
 
   // Initial flow
-  instance(InitialCoordinator) {
+  bind(InitialCoordinator, CoordinatorProtocol) {
     access(public)
+    name(Initial)
   }
 
   // Logged out flow
