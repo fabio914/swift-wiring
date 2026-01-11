@@ -1,6 +1,6 @@
 import UIKit
 
-protocol CoordinatorProtocol: AnyObject {
+public protocol CoordinatorProtocol: AnyObject {
     @MainActor
     func instantiateRoot() -> UIViewController?
 }

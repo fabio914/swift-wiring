@@ -12,7 +12,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window = UIWindow(windowScene: windowScene)
         let appContainer = AppContainer()
-        window?.rootViewController = appContainer.buildInitialCoordinator().instantiateRoot()
+        window?.rootViewController = appContainer.buildInitialCoordinatorProtocol().instantiateRoot()
         window?.makeKeyAndVisible()
     }
 

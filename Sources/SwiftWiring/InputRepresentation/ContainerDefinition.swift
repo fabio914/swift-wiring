@@ -2,6 +2,27 @@ import Foundation
 import SwiftSyntax
 import SwiftParser
 
+struct DependencyIdentifier: Hashable, Comparable, CustomStringConvertible {
+    let bindingName: BindingName // type
+    let name: Name?
+
+    static func < (lhs: DependencyIdentifier, rhs: DependencyIdentifier) -> Bool {
+        if lhs.bindingName == rhs.bindingName {
+            (lhs.name ?? "") < (rhs.name ?? "")
+        } else {
+            lhs.bindingName < rhs.bindingName
+        }
+    }
+
+    var description: String {
+        if let name {
+            "\(name)_\(bindingName)"
+        } else {
+            bindingName
+        }
+    }
+}
+
 struct DependencyDefinition: CustomStringConvertible {
     enum Kind {
         case singleton
@@ -18,18 +39,24 @@ struct DependencyDefinition: CustomStringConvertible {
     let className: String
     let sourceLocation: SourceLocation
     let accessLevel: AccessLevel
+    let name: Name?
 
-    var bindingName: BindingName {
-        switch bindingType {
-        case .binding(let protocolName):
-            protocolName
-        case .instance:
-            className
-        }
+    var identifier: DependencyIdentifier {
+        .init(
+            bindingName: {
+                switch bindingType {
+                case .binding(let protocolName):
+                    protocolName
+                case .instance:
+                    className
+                }
+            }(),
+            name: name
+        )
     }
 
     var description: String {
-        "DependencyDefinition(\(kind), \(className), \(bindingName))"
+        "DependencyDefinition(\(kind), \(className), \(identifier))"
     }
 
     init?(
@@ -44,21 +71,25 @@ struct DependencyDefinition: CustomStringConvertible {
             self.bindingType = .binding(bindingName)
             self.className = className
             self.accessLevel = subCommands.accessLevel
+            self.name = subCommands.name
         case let .singletonBind(className, bindingName, subCommands):
             self.kind = .singleton
             self.bindingType = .binding(bindingName)
             self.className = className
             self.accessLevel = subCommands.accessLevel
+            self.name = subCommands.name
         case let .instance(className, subCommands):
             self.kind = .build
             self.bindingType = .instance
             self.className = className
             self.accessLevel = subCommands.accessLevel
+            self.name = subCommands.name
         case let .singleton(className, subCommands):
             self.kind = .singleton
             self.bindingType = .instance
             self.className = className
             self.accessLevel = subCommands.accessLevel
+            self.name = subCommands.name
         default:
             return nil
         }
@@ -74,7 +105,7 @@ struct DependencyDefinition: CustomStringConvertible {
 struct ContainerDefinition: CustomStringConvertible {
     let containerName: String
     let containerProtocolName: String
-    let dependencyMap: [BindingName: DependencyDefinition]
+    let dependencyMap: [DependencyIdentifier: DependencyDefinition]
 
     var dependencies: [DependencyDefinition] {
         dependencyMap.sorted(by: { $0.key < $1.key }).map({ $0.value })
@@ -140,13 +171,13 @@ private func containerCommand(
 
 enum BindingError: Error {
     case missingBindings
-    case multipleBindingsFoundFor(String)
+    case multipleBindingsFoundFor(DependencyIdentifier)
 }
 
 private func bindings(
     sourceLocation: SourceLocation,
     commands: [WiringCommand.ContainerCommand]
-) throws -> [BindingName: DependencyDefinition] {
+) throws -> [DependencyIdentifier: DependencyDefinition] {
     let definitions = commands.compactMap { command in
         DependencyDefinition(sourceLocation: sourceLocation, command: command)
     }
@@ -158,16 +189,16 @@ private func bindings(
         )
     }
 
-    var result: [BindingName: DependencyDefinition] = [:]
+    var result: [DependencyIdentifier: DependencyDefinition] = [:]
 
     for definition in definitions {
-        if let existingBinding = result[definition.bindingName] {
+        if let existingBinding = result[definition.identifier] {
             throw InputFileError(
                 location: existingBinding.sourceLocation,
-                error: BindingError.multipleBindingsFoundFor(definition.bindingName)
+                error: BindingError.multipleBindingsFoundFor(definition.identifier)
             )
         } else {
-            result[definition.bindingName] = definition
+            result[definition.identifier] = definition
         }
     }
 

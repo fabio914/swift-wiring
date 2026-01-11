@@ -13,7 +13,7 @@ public final class AppContainer: AppContainerProtocol {
 
     public init() {}
 
-    public func buildInitialCoordinator() -> InitialCoordinator {
+    public func buildInitialCoordinatorProtocol() -> CoordinatorProtocol {
         return InitialCoordinator(
             appContainer: self
         )

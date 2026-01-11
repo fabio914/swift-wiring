@@ -63,10 +63,10 @@ struct ContainerCollection {
 }
 
 struct ExternalDependency: Hashable, CustomStringConvertible {
-    let protocolName: String
+    let identifier: DependencyIdentifier
 
     var description: String {
-        "ExternalDependency(\(protocolName))"
+        "ExternalDependency(\(identifier))"
     }
 }
 
@@ -74,8 +74,8 @@ struct InternalDependency: CustomStringConvertible {
     let definition: DependencyDefinition
     let injectableClass: InjectableClassDefinition
 
-    var dependencyNames: [BindingName] {
-        injectableClass.initializerDefinition.dependencies.map(\.type)
+    var dependencyIdentifiers: [DependencyIdentifier] {
+        injectableClass.initializerDefinition.dependencies.map(\.identifier)
     }
 
     var description: String {
@@ -111,7 +111,7 @@ enum DependencyType: CustomStringConvertible {
 struct ResolvedDependency: CustomStringConvertible {
     let definition: DependencyDefinition
     let injectableClass: InjectableClassDefinition
-    let dependencies: [BindingName: DependencyType]
+    let dependencies: [DependencyIdentifier: DependencyType]
 
     var description: String {
         "ResolvedDependency(\(definition), \(injectableClass), \(dependencies))"
@@ -137,17 +137,17 @@ struct ResolvedContainer: CustomStringConvertible {
         // Collecting unresolved dependencies
 
         var unresolvedInternalDependencies: [InternalDependency] = []
-        var dependencyDefinitionMap: [BindingName: InternalDependency] = [:]
+        var dependencyDefinitionMap: [DependencyIdentifier: InternalDependency] = [:]
 
         for dependency in containerDefinition.dependencies {
-            if let injectableClassDefinition = injectableClasses.byBinding[dependency.bindingName]?[dependency.className] {
+            if let injectableClassDefinition = injectableClasses.byBinding[dependency.identifier.bindingName]?[dependency.className] {
                 let internalDependency = InternalDependency(definition: dependency, injectableClass: injectableClassDefinition)
-                dependencyDefinitionMap[dependency.bindingName] = internalDependency
+                dependencyDefinitionMap[dependency.identifier] = internalDependency
                 unresolvedInternalDependencies.append(internalDependency)
             } else {
                 throw InputFileError(
                     location: containerDefinition.sourceLocation,
-                    error: ResolvedContainerError.missingClassFor(dependency.className, dependency.bindingName)
+                    error: ResolvedContainerError.missingClassFor(dependency.className, dependency.identifier.bindingName)
                 )
             }
         }
@@ -156,7 +156,7 @@ struct ResolvedContainer: CustomStringConvertible {
 
         var externalDependencies: Set<ExternalDependency> = []
         var resolvedDependencies: [ResolvedDependency] = []
-        let internalDependencyGraph = DependencyGraph<BindingName>()
+        let internalDependencyGraph = DependencyGraph<DependencyIdentifier>()
 
         for unresolvedInternalDependency in unresolvedInternalDependencies {
             // Singletons cannot have parameters.
@@ -168,10 +168,10 @@ struct ResolvedContainer: CustomStringConvertible {
                 )
             }
 
-            var dependencyTypes: [BindingName: DependencyType] = [:]
+            var dependencyTypes: [DependencyIdentifier: DependencyType] = [:]
 
-            for dependencyName in unresolvedInternalDependency.dependencyNames {
-                if let definition = dependencyDefinitionMap[dependencyName] {
+            for dependencyIdentifier in unresolvedInternalDependency.dependencyIdentifiers {
+                if let definition = dependencyDefinitionMap[dependencyIdentifier] {
                     // Instances and Singletons can only depend on other Instances
                     // or Singletons that take no parameters, or external dependencies.
                     // (Otherwise its `build` function would need to contain its
@@ -184,21 +184,21 @@ struct ResolvedContainer: CustomStringConvertible {
                         )
                     }
 
-                    internalDependencyGraph.add(unresolvedInternalDependency.definition.bindingName, to: dependencyName)
-                    dependencyTypes[dependencyName] = .internal(definition)
-                } else if dependencyName == containerDefinition.containerName || dependencyName == containerDefinition.containerProtocolName {
+                    internalDependencyGraph.add(unresolvedInternalDependency.definition.identifier, to: dependencyIdentifier)
+                    dependencyTypes[dependencyIdentifier] = .internal(definition)
+                } else if (dependencyIdentifier.bindingName == containerDefinition.containerName || dependencyIdentifier.bindingName == containerDefinition.containerProtocolName), dependencyIdentifier.name == nil {
                     // Dependencies can be injected with the container itself.
                     // However, they should avoid retaining the container strongly, or else this
                     // can lead to retain cycles. Especially if this instance is a singleton within that container.
-                    dependencyTypes[dependencyName] = .container(ContainerDependency(containerName: dependencyName))
+                    dependencyTypes[dependencyIdentifier] = .container(ContainerDependency(containerName: dependencyIdentifier.bindingName))
                 } else {
                     // Dependencies that aren't part of this container will be added to
                     // the external dependencies set and will be part of the container's
                     // `init` function.
 
-                    let externalDependency = ExternalDependency(protocolName: dependencyName)
+                    let externalDependency = ExternalDependency(identifier: dependencyIdentifier)
                     externalDependencies.insert(externalDependency)
-                    dependencyTypes[dependencyName] = .external(externalDependency)
+                    dependencyTypes[dependencyIdentifier] = .external(externalDependency)
                 }
             }
 
@@ -214,11 +214,13 @@ struct ResolvedContainer: CustomStringConvertible {
         if case let .failure(.cycleDetected(path)) = internalDependencyGraph.verifyCycle() {
             throw InputFileError(
                 location: containerDefinition.sourceLocation,
-                error: ResolvedContainerError.dependencyCycleDetected(path.joined(separator: " > "))
+                error: ResolvedContainerError.dependencyCycleDetected(
+                    path.map(\.description).joined(separator: " > ")
+                )
             )
         }
 
-        self.externalDependencies = externalDependencies.sorted(by: { $0.protocolName < $1.protocolName })
+        self.externalDependencies = externalDependencies.sorted(by: { $0.identifier < $1.identifier })
         self.resolvedDependencies = resolvedDependencies
     }
 
