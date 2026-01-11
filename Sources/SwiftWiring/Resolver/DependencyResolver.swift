@@ -140,14 +140,14 @@ struct ResolvedContainer: CustomStringConvertible {
         var dependencyDefinitionMap: [DependencyIdentifier: InternalDependency] = [:]
 
         for dependency in containerDefinition.dependencies {
-            if let injectableClassDefinition = injectableClasses.byBinding[dependency.identifier.bindingName]?[dependency.className] {
+            if let injectableClassDefinition = injectableClasses.byBinding[dependency.identifier.bindingName]?[dependency.classOrFunctionName] {
                 let internalDependency = InternalDependency(definition: dependency, injectableClass: injectableClassDefinition)
                 dependencyDefinitionMap[dependency.identifier] = internalDependency
                 unresolvedInternalDependencies.append(internalDependency)
             } else {
                 throw InputFileError(
                     location: containerDefinition.sourceLocation,
-                    error: ResolvedContainerError.missingClassFor(dependency.className, dependency.identifier.bindingName)
+                    error: ResolvedContainerError.missingClassFor(dependency.classOrFunctionName, dependency.identifier.bindingName)
                 )
             }
         }

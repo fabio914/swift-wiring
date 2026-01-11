@@ -36,27 +36,13 @@ struct DependencyDefinition: CustomStringConvertible {
 
     let kind: Kind
     let bindingType: BindingType
-    let className: String
+    let classOrFunctionName: ClassOrFunctionName
     let sourceLocation: SourceLocation
     let accessLevel: AccessLevel
-    let name: Name?
-
-    var identifier: DependencyIdentifier {
-        .init(
-            bindingName: {
-                switch bindingType {
-                case .binding(let protocolName):
-                    protocolName
-                case .instance:
-                    className
-                }
-            }(),
-            name: name
-        )
-    }
+    let identifier: DependencyIdentifier
 
     var description: String {
-        "DependencyDefinition(\(kind), \(className), \(identifier))"
+        "DependencyDefinition(\(kind), \(classOrFunctionName), \(identifier))"
     }
 
     init?(
@@ -66,30 +52,30 @@ struct DependencyDefinition: CustomStringConvertible {
         self.sourceLocation = sourceLocation
 
         switch command {
-        case let .bind(className, bindingName, subCommands):
+        case let .bind(classOrFunctionName, bindingName, subCommands):
             self.kind = .build
             self.bindingType = .binding(bindingName)
-            self.className = className
+            self.classOrFunctionName = classOrFunctionName
             self.accessLevel = subCommands.accessLevel
-            self.name = subCommands.name
-        case let .singletonBind(className, bindingName, subCommands):
+            self.identifier = .init(bindingName: bindingName, name: subCommands.name)
+        case let .singletonBind(classOrFunctionName, bindingName, subCommands):
             self.kind = .singleton
             self.bindingType = .binding(bindingName)
-            self.className = className
+            self.classOrFunctionName = classOrFunctionName
             self.accessLevel = subCommands.accessLevel
-            self.name = subCommands.name
+            self.identifier = .init(bindingName: bindingName, name: subCommands.name)
         case let .instance(className, subCommands):
             self.kind = .build
             self.bindingType = .instance
-            self.className = className
+            self.classOrFunctionName = className
             self.accessLevel = subCommands.accessLevel
-            self.name = subCommands.name
+            self.identifier = .init(bindingName: className, name: subCommands.name)
         case let .singleton(className, subCommands):
             self.kind = .singleton
             self.bindingType = .instance
-            self.className = className
+            self.classOrFunctionName = className
             self.accessLevel = subCommands.accessLevel
-            self.name = subCommands.name
+            self.identifier = .init(bindingName: className, name: subCommands.name)
         default:
             return nil
         }
