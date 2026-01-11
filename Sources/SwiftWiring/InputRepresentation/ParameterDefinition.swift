@@ -29,6 +29,28 @@ struct ParameterDefinition: CustomStringConvertible {
         }
     }
 
+    static func parameters(
+        from signature: FunctionSignatureSyntax,
+        converter: SourceLocationConverter
+    ) throws -> [ParameterDefinition] {
+        var parameters: [ParameterDefinition] = []
+        var previousTrivia = signature.parameterClause.leftParen.trailingTrivia
+
+        try signature.parameterClause.parameters.forEach { parameter in
+            parameters.append(
+                try ParameterDefinition(
+                    converter: converter,
+                    previousTrailingTrivia: previousTrivia,
+                    functionParameter: parameter
+                )
+            )
+
+            previousTrivia = parameter.trailingTrivia
+        }
+
+        return parameters
+    }
+
     var description: String {
         "ParameterDefinition(\(kind))"
     }
@@ -104,7 +126,7 @@ private func dependencyCommand(
         )
     }
 
-    // Functions and Tuples are not supported yet
+    // Functions, Tuples and Optionals are not supported yet
     guard let identifier = item.type.as(IdentifierTypeSyntax.self) else {
         throw InputFileError(
             location: item.startLocation(converter: converter),

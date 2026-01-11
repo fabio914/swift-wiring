@@ -6,6 +6,7 @@ enum InitializerDefinitionError: Error {
     case invalidDependencyDefinition
     case initializerWithOptionalsNotSupported
     case initializerWithGenericsNotSupported
+    case initializerWithEffectSpecifiersNotSupported
     case initializerWithReturnsNotSupported
 }
 
@@ -47,22 +48,14 @@ struct InitializerDefinition: CustomStringConvertible {
             )
         }
 
-        var parameters: [ParameterDefinition] = []
-        var previousTrivia = initializerDeclaration.signature.parameterClause.leftParen.trailingTrivia
-
-        try initializerDeclaration.signature.parameterClause.parameters.forEach { parameter in
-            parameters.append(
-                try ParameterDefinition(
-                    converter: converter,
-                    previousTrailingTrivia: previousTrivia,
-                    functionParameter: parameter
-                )
+        if let effectSpecifiers = initializerDeclaration.signature.effectSpecifiers {
+            throw InputFileError(
+                location: effectSpecifiers.startLocation(converter: converter),
+                error: InitializerDefinitionError.initializerWithEffectSpecifiersNotSupported
             )
-
-            previousTrivia = parameter.trailingTrivia
         }
 
-        self.parameters = parameters
+        self.parameters = try ParameterDefinition.parameters(from: initializerDeclaration.signature, converter: converter)
     }
 
     var dependencies: [FunctionParameterDependencyDefinition] {
