@@ -20,18 +20,6 @@ final class ContainerOutput {
         }
     }
 
-    private func buildFunctionNameFor(definition: DependencyDefinition) -> String {
-        "build\(definition.identifier.description.CamelCased)"
-    }
-
-    private func singletonNameFor(definition: DependencyDefinition) -> String {
-        "singleton\(definition.identifier.description.CamelCased)"
-    }
-
-    private func externalClosureNameFor(definition: ExternalDependency) -> String {
-        "external\(definition.identifier.description.CamelCased)"
-    }
-
     // MARK: - Build function
 
     private func makeBuildFunctionSignature(for resolvedDependency: ResolvedDependency) -> FunctionSignatureSyntax {
@@ -94,7 +82,7 @@ final class ContainerOutput {
                                     baseName: .keyword(.self)
                                 ),
                                 declName: DeclReferenceExprSyntax(
-                                    baseName: .identifier(externalClosureNameFor(definition: externalDependency))
+                                    baseName: .identifier(externalDependency.externalClosureName)
                                 )
                             ),
                             leftParen: .leftParenToken(),
@@ -110,7 +98,7 @@ final class ContainerOutput {
                                         baseName: .keyword(.self)
                                     ),
                                     declName: DeclReferenceExprSyntax(
-                                        baseName: .identifier(buildFunctionNameFor(definition: internalDependency.definition))
+                                        baseName: .identifier(internalDependency.definition.buildFunctionName)
                                     )
                                 ),
                                 leftParen: .leftParenToken(),
@@ -123,7 +111,7 @@ final class ContainerOutput {
                                     baseName: .keyword(.self)
                                 ),
                                 declName: DeclReferenceExprSyntax(
-                                    baseName: .identifier(singletonNameFor(definition: internalDependency.definition))
+                                    baseName: .identifier(internalDependency.definition.singletonName)
                                 )
                             )
                         }
@@ -183,7 +171,7 @@ final class ContainerOutput {
                 }
             },
             funcKeyword: .keyword(.func, trailingTrivia: .space),
-            name: .identifier(buildFunctionNameFor(definition: resolvedDependency.definition)),
+            name: .identifier(resolvedDependency.definition.buildFunctionName),
             signature: makeBuildFunctionSignature(for: resolvedDependency),
             body: CodeBlockSyntax(
                 statements: CodeBlockItemListSyntax {
@@ -232,7 +220,7 @@ final class ContainerOutput {
             bindings: PatternBindingListSyntax {
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(
-                        identifier: .identifier(singletonNameFor(definition: resolvedDependency.definition))
+                        identifier: .identifier(resolvedDependency.definition.singletonName)
                     ),
                     typeAnnotation: TypeAnnotationSyntax(
                         type: IdentifierTypeSyntax(
@@ -245,7 +233,7 @@ final class ContainerOutput {
                         value: FunctionCallExprSyntax(
                             leadingTrivia: .space,
                             calledExpression: DeclReferenceExprSyntax(
-                                baseName: .identifier(buildFunctionNameFor(definition: resolvedDependency.definition))
+                                baseName: .identifier(resolvedDependency.definition.buildFunctionName)
                             ),
                             leftParen: .leftParenToken(),
                             arguments: LabeledExprListSyntax {},
@@ -283,7 +271,7 @@ final class ContainerOutput {
             bindings: PatternBindingListSyntax {
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(
-                        identifier: .identifier(externalClosureNameFor(definition: externalDependency))
+                        identifier: .identifier(externalDependency.externalClosureName)
                     ),
                     typeAnnotation: TypeAnnotationSyntax(
                         type: typeFor(externalDependency: externalDependency)
@@ -297,10 +285,6 @@ final class ContainerOutput {
     }
 
     // MARK: - Initializer
-
-    private func parameterNameFor(externalDependency: ExternalDependency) -> String {
-        externalDependency.identifier.description.camelCased
-    }
 
     private func initializer(with externalDependencies: [ExternalDependency]) -> DeclSyntax {
         let initializerDeclaration = InitializerDeclSyntax(
@@ -318,7 +302,7 @@ final class ContainerOutput {
                         for externalDependency in externalDependencies {
                             FunctionParameterSyntax(
                                 leadingTrivia: .newline + .spaces(8),
-                                firstName: .identifier(parameterNameFor(externalDependency: externalDependency)),
+                                firstName: .identifier(externalDependency.initParameterName),
                                 type: AttributedTypeSyntax(
                                     specifiers: TypeSpecifierListSyntax {},
                                     attributes: AttributeListSyntax {
@@ -352,7 +336,7 @@ final class ContainerOutput {
                                             baseName: .keyword(.self)
                                         ),
                                         declName: DeclReferenceExprSyntax(
-                                            baseName: .identifier(externalClosureNameFor(definition: externalDependency))
+                                            baseName: .identifier(externalDependency.externalClosureName)
                                         )
                                     ),
                                     operator: AssignmentExprSyntax(
@@ -360,7 +344,7 @@ final class ContainerOutput {
                                         trailingTrivia: .space
                                     ),
                                     rightOperand: DeclReferenceExprSyntax(
-                                        baseName: .identifier(parameterNameFor(externalDependency: externalDependency))
+                                        baseName: .identifier(externalDependency.initParameterName)
                                     )
                                 )
                             )

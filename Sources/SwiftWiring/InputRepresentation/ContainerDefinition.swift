@@ -107,6 +107,14 @@ struct DependencyDefinition: CustomStringConvertible {
             identifier: identifier
         )
     }
+
+    var buildFunctionName: String {
+        "build\(identifier.description.CamelCased)"
+    }
+
+    var singletonName: String {
+        "singleton\(identifier.description.CamelCased)"
+    }
 }
 
 ///
