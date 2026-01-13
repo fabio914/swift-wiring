@@ -56,10 +56,6 @@ Now add an empty `Containers.generated.swift` file to your target, and add the p
 
 ### Inject
 
-Syntax: `sw: inject`
-
-Examples: `sw: inject` or `sw: inject()`
-
 | Syntax | `sw: inject` |
 |---|---|
 | Examples | `sw: inject` or `sw: inject()` |
@@ -74,15 +70,18 @@ Examples: `sw: inject` or `sw: inject()`
 
 
 | Syntax |
+|---|
+| 
 ```
 sw: container(ContainerName) {
     // container subcommands
 }
-```
+``` 
 |
-|---|---|
 
 | Example |
+|---|
+|
 ```
 sw: container(MyContainer) {
     // Single line comments are allowed here
