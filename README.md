@@ -6,6 +6,14 @@ It reads `sw:` annotations in the Swift source code and generates `Container`s w
 This tool is still in active development and is **experimental**. I don't recommend adopting it in your project yet. 
 Check the TO-DO list below for some of the things that still need to be implemented.
 
+## Documentation
+
+Access [this link](Docs/DOCUMENTATION.md) to read how to use it.
+
+## Example
+
+Navigate to the `Example/` folder and use [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate an Xcode project of an iOS app that uses this tool.
+
 **Input**
 ```swift
 import Foundation
@@ -275,22 +283,6 @@ public final class MyContainer: MyContainerProtocol {
         )
     }
 }
-```
-
-## Usage
-
-```shell
-swift-wiring inject <source files> -o <output file with your Containers>
-```
-
-## Example
-
-Navigate to the `Example/` folder and use [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate an Xcode project of an iOS app that uses this tool.
-
-You can install this command line tool with [Mint](https://github.com/yonaskolb/Mint):
-
-```shell
-mint install fabio914/swift-wiring@main
 ```
 
 ## TO-DOs
