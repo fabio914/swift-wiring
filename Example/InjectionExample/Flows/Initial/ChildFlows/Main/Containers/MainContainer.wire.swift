@@ -4,34 +4,34 @@ import UIKit
 
 This container has all dependencies for the Logged In state.
 
-wiring: container(MainContainer) {
-  instance(MainCoordinator)
+sw: container(MainContainer) {
+  build(MainCoordinator)
 
   // User Tab
-  instance(UserCoordinator)
-  instance(UserViewModel)
+  build(UserCoordinator)
+  build(UserViewModel)
 
   // Settings Tab
-  instance(SettingsCoordinator)
-  instance(SettingsViewModel)
+  build(SettingsCoordinator)
+  build(SettingsViewModel)
 
   // Providers
-  bind(providesUserName, String) { name(UserName) }
-  // the above is equivalent to: instance(providesUserName) { name(UserName) }
+  build(providesUserName, String) { name(UserName) }
+  // the above is equivalent to: build(providesUserName) { name(UserName) }
 
-  singletonBind(providesShortDateFormatter, DateFormatter) { name(Short) }
+  singleton(providesShortDateFormatter, DateFormatter) { name(Short) }
   // the above is equivalent to: singleton(providesShortDateFormatter) { name(Short) }
 }
 
 */
 protocol MainContainerProtocol {}
 
-// wiring: inject
-func providesUserName(/* wiring: dependency */ user: User) -> String {
+// sw: inject
+func providesUserName(/* sw: dependency */ user: User) -> String {
     user.userName
 }
 
-// wiring: inject
+// sw: inject
 func providesShortDateFormatter() -> DateFormatter {
     let dateFormatter = DateFormatter()
     dateFormatter.dateStyle = .short

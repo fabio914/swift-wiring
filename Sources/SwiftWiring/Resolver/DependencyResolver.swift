@@ -31,7 +31,7 @@ struct InjectableCollection {
 
         for injectableFunction in sources.flatMap(\.injectableFunctions) {
             // Adding the `injectableFunction.functionName` here too so we're able to find
-            // injectable functions for `instance(functionName)` and `singleton(functionName)` cases
+            // injectable functions for `build(functionName)` and `singleton(functionName)` cases
             let namesToCheck: [BindingName] = [injectableFunction.bindingName, injectableFunction.functionName]
 
             for bindingName in namesToCheck {
@@ -193,7 +193,7 @@ struct ResolvedContainer: CustomStringConvertible {
                 case .class:
                     dependency.identifier
                 case .function(let injectableFunction):
-                    // Transforming dependency identifiers for the `instance(functionName)` and `singleton(functionName)`
+                    // Transforming dependency identifiers for the `build(functionName)` and `singleton(functionName)`
                     // cases when we don't specify a separate `BindingName`.
                     // Replacing the potential function name with the binding name from the injectable function we found.
                     DependencyIdentifier(bindingName: injectableFunction.bindingName, name: dependency.identifier.name)

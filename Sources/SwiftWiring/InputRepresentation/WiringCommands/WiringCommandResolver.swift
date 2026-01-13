@@ -20,10 +20,8 @@ enum WiringCommand {
 
     enum ContainerCommand {
         case access(AccessLevel)
-        case bind(ClassOrFunctionName, BindingName, [BindingCommand])
-        case singletonBind(ClassOrFunctionName, BindingName, [BindingCommand])
-        case instance(ClassOrFunctionName, [BindingCommand])
-        case singleton(ClassOrFunctionName, [BindingCommand])
+        case build(ClassOrFunctionName, BindingName?, [BindingCommand])
+        case singleton(ClassOrFunctionName, BindingName?, [BindingCommand])
     }
 
     case empty
@@ -45,7 +43,7 @@ enum CommandResolverError: Error {
 final class WiringCommandResolver {
 
     static func resolve(_ string: String) throws -> WiringCommand {
-        let rawCommand = try CommandParser.parse(string, tag: "wiring:")
+        let rawCommand = try CommandParser.parse(string, tag: "sw:")
 
         if rawCommand.isEmpty {
             return .empty
@@ -87,21 +85,12 @@ final class WiringCommandResolver {
         switch rawCommand.name {
         case "access":
             return .access(try resolveAccessCommand(rawCommand))
-        case "bind":
-            try verifyCommand(rawCommand, named: "bind", withArguments: 2, andBody: .optional)
-            return .bind(rawCommand.arguments[0], rawCommand.arguments[1], try bindingSubCommands(rawCommand))
-        case "bindToSingleton":
-            try verifyCommand(rawCommand, named: "bindToSingleton", withArguments: 2, andBody: .optional)
-            return .bind(rawCommand.arguments[0], rawCommand.arguments[1], try bindingSubCommands(rawCommand))
-        case "singletonBind":
-            try verifyCommand(rawCommand, named: "singletonBind", withArguments: 2, andBody: .optional)
-            return .singletonBind(rawCommand.arguments[0], rawCommand.arguments[1], try bindingSubCommands(rawCommand))
-        case "instance":
-            try verifyCommand(rawCommand, named: "instance", withArguments: 1, andBody: .optional)
-            return .instance(rawCommand.arguments[0], try bindingSubCommands(rawCommand))
+        case "build":
+            try verifyCommand(rawCommand, named: "bind", withArgumentsRange: 1...2, andBody: .optional)
+            return .build(rawCommand.arguments[0], rawCommand.arguments.safeIndex(1), try bindingSubCommands(rawCommand))
         case "singleton":
-            try verifyCommand(rawCommand, named: "singleton", withArguments: 1, andBody: .optional)
-            return .singleton(rawCommand.arguments[0], try bindingSubCommands(rawCommand))
+            try verifyCommand(rawCommand, named: "singleton", withArgumentsRange: 1...2, andBody: .optional)
+            return .singleton(rawCommand.arguments[0], rawCommand.arguments.safeIndex(1), try bindingSubCommands(rawCommand))
         default:
             throw CommandResolverError.unrecognizedCommand(rawCommand.name)
         }

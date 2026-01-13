@@ -3,7 +3,7 @@ import Foundation
 protocol SettingsCoordinatorProtocol: AnyObject {
 }
 
-/* wiring:inject */
+/* sw:inject */
 final class SettingsViewModel: SettingsViewModelProtocol {
 
     private let coordinator: SettingsCoordinatorProtocol
@@ -17,10 +17,10 @@ final class SettingsViewModel: SettingsViewModelProtocol {
     }
 
     init(
-        /* wiring:dependency */ session: Session,
-        /* wiring:dependency */ sessionManager: SessionManagerProtocol,
-        /* wiring:dependency */ logger: LoggerProtocol,
-        /* wiring:dependency(Short) */ dateFormatter: DateFormatter,
+        /* sw:dependency */ session: Session,
+        /* sw:dependency */ sessionManager: SessionManagerProtocol,
+        /* sw:dependency */ logger: LoggerProtocol,
+        /* sw:dependency(Short) */ dateFormatter: DateFormatter,
         coordinator: SettingsCoordinatorProtocol
     ) {
         self.session = session

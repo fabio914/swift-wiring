@@ -10,15 +10,15 @@ enum LoginViewModelError: Error {
     case loginApiError(Error)
 }
 
-/* wiring:inject */
+/* sw:inject */
 final class LoginViewModel: LoginViewModelProtocol {
     private let coordinator: LoginCoordinatorProtocol
     private let apiClient: LoginApiClientProtocol
     private let logger: LoggerProtocol
 
     init(
-        /* wiring:dependency */ logger: LoggerProtocol,
-        /* wiring:dependency */ apiClient: LoginApiClientProtocol,
+        /* sw:dependency */ logger: LoggerProtocol,
+        /* sw:dependency */ apiClient: LoginApiClientProtocol,
         coordinator: LoginCoordinatorProtocol
     ) {
         self.logger = logger

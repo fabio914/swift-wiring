@@ -92,7 +92,7 @@ enum InjectableClassCommandError: Error {
 }
 
 ///
-/// Returns true if this is a class with `wiring: inject`
+/// Returns true if this is a class with `sw: inject`
 ///
 private func hasInjectableClassCommand(
     converter: SourceLocationConverter,
