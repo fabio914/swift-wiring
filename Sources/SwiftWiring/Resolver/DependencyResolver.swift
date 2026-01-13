@@ -1,4 +1,5 @@
 import Foundation
+import SwiftSyntax
 
 enum InjectableCollectionError: Error {
     case injectableWithThisNameAlreadyExists(ClassOrFunctionName)
@@ -88,6 +89,14 @@ struct ExternalDependency: Hashable, CustomStringConvertible {
     var description: String {
         "ExternalDependency(\(identifier))"
     }
+
+    var initParameterName: String {
+        identifier.description.camelCased
+    }
+
+    var externalClosureName: String {
+        "external\(identifier.description.CamelCased)"
+    }
 }
 
 struct InternalDependency: CustomStringConvertible {
@@ -139,6 +148,7 @@ enum ResolvedContainerError: Error {
     case singletonCannotHaveParameters(ClassOrFunctionName)
     case classDependsOnClassThatRequireParameters(ClassOrFunctionName)
     case dependencyCycleDetected(String)
+    case multipleItemsNamed(String)
 }
 
 struct ResolvedContainer: CustomStringConvertible {
@@ -152,6 +162,27 @@ struct ResolvedContainer: CustomStringConvertible {
 
         // Collecting unresolved dependencies
 
+        let (unresolvedInternalDependencies, dependencyDefinitionMap) = try Self.collectUnresolvedDependencies(
+            containerDefinition: containerDefinition,
+            injectables: injectables
+        )
+
+        // Verifying dependencies and extracting external dependencies
+
+        let (externalDependencies, resolvedDependencies) = try Self.verifyDependencies(
+            containerDefinition: containerDefinition,
+            unresolvedInternalDependencies: unresolvedInternalDependencies,
+            dependencyDefinitionMap: dependencyDefinitionMap
+        )
+
+        self.externalDependencies = externalDependencies.sorted(by: { $0.identifier < $1.identifier })
+        self.resolvedDependencies = resolvedDependencies
+    }
+
+    static func collectUnresolvedDependencies(
+        containerDefinition: ContainerDefinition,
+        injectables: InjectableCollection
+    ) throws -> ([InternalDependency], [DependencyIdentifier: InternalDependency]) {
         var unresolvedInternalDependencies: [InternalDependency] = []
         var dependencyDefinitionMap: [DependencyIdentifier: InternalDependency] = [:]
 
@@ -183,8 +214,14 @@ struct ResolvedContainer: CustomStringConvertible {
             }
         }
 
-        // Verifying dependencies and extracting external dependencies
+        return (unresolvedInternalDependencies, dependencyDefinitionMap)
+    }
 
+    static func verifyDependencies(
+        containerDefinition: ContainerDefinition,
+        unresolvedInternalDependencies: [InternalDependency],
+        dependencyDefinitionMap: [DependencyIdentifier: InternalDependency]
+    ) throws -> (Set<ExternalDependency>, [ResolvedDependency]) {
         var externalDependencies: Set<ExternalDependency> = []
         var resolvedDependencies: [ResolvedDependency] = []
         let internalDependencyGraph = DependencyGraph<DependencyIdentifier>()
@@ -242,17 +279,92 @@ struct ResolvedContainer: CustomStringConvertible {
             )
         }
 
-        if case let .failure(.cycleDetected(path)) = internalDependencyGraph.verifyCycle() {
+        // Verifying cycles
+        try Self.verifyCycles(sourceLocation: containerDefinition.sourceLocation, dependencyGraph: internalDependencyGraph)
+
+        // Verifying collisions
+        try Self.verifyNameCollisions(
+            sourceLocation: containerDefinition.sourceLocation,
+            externalDependencies: externalDependencies,
+            resolvedDependencies: resolvedDependencies
+        )
+
+        return (externalDependencies, resolvedDependencies)
+    }
+
+    static func verifyCycles(
+        sourceLocation: SourceLocation,
+        dependencyGraph: DependencyGraph<DependencyIdentifier>
+    ) throws {
+        if case let .failure(.cycleDetected(path)) = dependencyGraph.verifyCycle() {
             throw InputFileError(
-                location: containerDefinition.sourceLocation,
+                location: sourceLocation,
                 error: ResolvedContainerError.dependencyCycleDetected(
                     path.map(\.description).joined(separator: " > ")
                 )
             )
         }
+    }
 
-        self.externalDependencies = externalDependencies.sorted(by: { $0.identifier < $1.identifier })
-        self.resolvedDependencies = resolvedDependencies
+    static func verifyNameCollisions(
+        sourceLocation: SourceLocation,
+        externalDependencies: Set<ExternalDependency>,
+        resolvedDependencies: [ResolvedDependency]
+    ) throws {
+        var externalInitParameterNames: Set<String> = []
+        var containerNames: Set<String> = []
+
+        for externalDependency in externalDependencies {
+            let initParameterName = externalDependency.initParameterName
+            let closureName = externalDependency.externalClosureName
+
+            if externalInitParameterNames.contains(initParameterName) {
+                throw InputFileError(
+                    location: sourceLocation,
+                    error: ResolvedContainerError.multipleItemsNamed(initParameterName)
+                )
+            } else {
+                externalInitParameterNames.insert(initParameterName)
+            }
+
+            // This shouldn't happen (the previous `if` would already throw an error)
+            if containerNames.contains(closureName) {
+                throw InputFileError(
+                    location: sourceLocation,
+                    error: ResolvedContainerError.multipleItemsNamed(closureName)
+                )
+            } else {
+                // Adding here for completion, but the way closure names are defined, they won't collide with
+                // build functions or singletons.
+                containerNames.insert(closureName)
+            }
+        }
+
+        for resolvedDependency in resolvedDependencies {
+            let buildName = resolvedDependency.definition.buildFunctionName
+
+            if containerNames.contains(buildName) {
+                throw InputFileError(
+                    location: sourceLocation,
+                    error: ResolvedContainerError.multipleItemsNamed(buildName)
+                )
+            } else {
+                containerNames.insert(buildName)
+            }
+
+            if case .singleton = resolvedDependency.definition.kind {
+                let singletonName = resolvedDependency.definition.singletonName
+
+                if containerNames.contains(singletonName) {
+                    throw InputFileError(
+                        location: sourceLocation,
+                        error: ResolvedContainerError.multipleItemsNamed(singletonName)
+                    )
+                } else {
+                    containerNames.insert(singletonName)
+                }
+            }
+        }
     }
 
     var description: String {
