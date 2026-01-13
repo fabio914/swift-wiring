@@ -4,12 +4,12 @@ enum NetworkManagerError: Error {
     case notImplemented
 }
 
-/* wiring:inject */
+/* sw:inject */
 final class NetworkManager: NetworkManagerProtocol {
 
     let sessionManager: SessionManagerProtocol
 
-    init(/* wiring:dependency */ sessionManager: SessionManagerProtocol) {
+    init(/* sw:dependency */ sessionManager: SessionManagerProtocol) {
         self.sessionManager = sessionManager
     }
 

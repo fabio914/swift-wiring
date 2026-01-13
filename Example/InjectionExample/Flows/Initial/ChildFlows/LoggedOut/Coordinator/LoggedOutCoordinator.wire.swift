@@ -5,7 +5,7 @@ protocol LoggedOutCoordinatorDelegate: AnyObject {
     func didCompleteLoginWith(session: Session, user: User)
 }
 
-/* wiring:inject */
+/* sw:inject */
 final class LoggedOutCoordinator: NSObject, CoordinatorProtocol {
 
     weak var delegate: LoggedOutCoordinatorDelegate?
@@ -15,7 +15,7 @@ final class LoggedOutCoordinator: NSObject, CoordinatorProtocol {
     weak var navigationController: UINavigationController?
 
     init(
-        /* wiring:dependency */ appContainer: AppContainer,
+        /* sw:dependency */ appContainer: AppContainer,
         delegate: LoggedOutCoordinatorDelegate
     ) {
         self.appContainer = appContainer

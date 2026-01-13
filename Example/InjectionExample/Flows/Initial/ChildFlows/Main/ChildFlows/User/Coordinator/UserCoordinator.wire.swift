@@ -1,12 +1,12 @@
 import UIKit
 
-/* wiring:inject */
+/* sw:inject */
 final class UserCoordinator: CoordinatorProtocol {
 
     let mainContainer: MainContainer
     weak var navigationController: UINavigationController?
 
-    init(/* wiring:dependency */ mainContainer: MainContainer) {
+    init(/* sw:dependency */ mainContainer: MainContainer) {
         self.mainContainer = mainContainer
     }
 

@@ -3,15 +3,15 @@ import Foundation
 protocol UserCoordinatorProtocol: AnyObject {
 }
 
-/* wiring:inject */
+/* sw:inject */
 final class UserViewModel: UserViewModelProtocol {
     private let coordinator: UserCoordinatorProtocol
     private let logger: LoggerProtocol
     private let name: String
 
     init(
-        /* wiring:dependency(UserName) */ name: String,
-        /* wiring:dependency */ logger: LoggerProtocol,
+        /* sw:dependency(UserName) */ name: String,
+        /* sw:dependency */ logger: LoggerProtocol,
         coordinator: UserCoordinatorProtocol
     ) {
         self.name = name

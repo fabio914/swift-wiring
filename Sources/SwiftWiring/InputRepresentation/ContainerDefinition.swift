@@ -52,30 +52,30 @@ struct DependencyDefinition: CustomStringConvertible {
         self.sourceLocation = sourceLocation
 
         switch command {
-        case let .bind(classOrFunctionName, bindingName, subCommands):
+        case let .build(classOrFunctionName, .some(bindingName), subCommands):
             self.kind = .build
             self.bindingType = .binding(bindingName)
             self.classOrFunctionName = classOrFunctionName
             self.accessLevel = subCommands.accessLevel
             self.identifier = .init(bindingName: bindingName, name: subCommands.name)
-        case let .singletonBind(classOrFunctionName, bindingName, subCommands):
+        case let .singleton(classOrFunctionName, .some(bindingName), subCommands):
             self.kind = .singleton
             self.bindingType = .binding(bindingName)
             self.classOrFunctionName = classOrFunctionName
             self.accessLevel = subCommands.accessLevel
             self.identifier = .init(bindingName: bindingName, name: subCommands.name)
-        case let .instance(className, subCommands):
+        case let .build(classOrFunctionName, .none, subCommands):
             self.kind = .build
             self.bindingType = .instance
-            self.classOrFunctionName = className
+            self.classOrFunctionName = classOrFunctionName
             self.accessLevel = subCommands.accessLevel
-            self.identifier = .init(bindingName: className, name: subCommands.name)
-        case let .singleton(className, subCommands):
+            self.identifier = .init(bindingName: classOrFunctionName, name: subCommands.name)
+        case let .singleton(classOrFunctionName, .none, subCommands):
             self.kind = .singleton
             self.bindingType = .instance
-            self.classOrFunctionName = className
+            self.classOrFunctionName = classOrFunctionName
             self.accessLevel = subCommands.accessLevel
-            self.identifier = .init(bindingName: className, name: subCommands.name)
+            self.identifier = .init(bindingName: classOrFunctionName, name: subCommands.name)
         default:
             return nil
         }
@@ -165,7 +165,7 @@ enum ContainerCommandError: Error {
 }
 
 ///
-/// Extracts `wiring: container(...) { ... }` command
+/// Extracts `sw: container(...) { ... }` command
 ///
 private func containerCommand(
     converter: SourceLocationConverter,

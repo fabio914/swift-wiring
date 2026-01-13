@@ -102,9 +102,9 @@ private func parseDependencyCommand(
 }
 
 ///
-/// Detects a `wiring: dependency` or `wiring: dependency(SomeName)` in a Function Parameter
+/// Detects a `sw: dependency` or `sw: dependency(SomeName)` in a Function Parameter
 /// Example:
-///   /* wiring: dependency */ someDependency: SomeDependencyProtocol
+///   /* sw: dependency */ someDependency: SomeDependencyProtocol
 ///
 private func dependencyCommand(
     converter: SourceLocationConverter,

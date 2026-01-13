@@ -1,7 +1,7 @@
 # Swift Wiring
 
 This is a command line tool for compile-time Automatic Dependency Injection for [Swift](https://www.swift.org). 
-It reads `wiring:` annotations in the Swift source code and generates `Container`s with your resolved dependencies.
+It reads `sw:` annotations in the Swift source code and generates `Container`s with your resolved dependencies.
 
 This tool is still in active development and is **experimental**. I don't recommend adopting it in your project yet. 
 Check the TO-DO list below for some of the things that still need to be implemented.
@@ -10,25 +10,25 @@ Check the TO-DO list below for some of the things that still need to be implemen
 ```swift
 import Foundation
 
-// wiring: container(MyContainer) {
+// sw: container(MyContainer) {
 //   access(public)
 //
 //   singleton(SessionManager)
 //   singleton(UserManager) { access(public) }
 //
-//   singletonBind(UserDataPersistence, PersistenceProtocol) { name(User) }
-//   singletonBind(SessionDataPersistence, PersistenceProtocol) { name(Session) }
+//   singleton(UserDataPersistence, PersistenceProtocol) { name(User) }
+//   singleton(SessionDataPersistence, PersistenceProtocol) { name(Session) }
 //
-//   bind(NetworkManager, NetworkManagerProtocol)
-//   bind(AuthNetworkManager, NetworkManagerProtocol) { name(Authenticated) }
+//   build(NetworkManager, NetworkManagerProtocol)
+//   build(AuthNetworkManager, NetworkManagerProtocol) { name(Authenticated) }
 //
-//   instance(LoggedOutApi) { access(public) }
-//   bind(OtherApi, ApiClient) { access(public) name(Other) }
-//   bind(UserInfoApi, ApiClient) { name(User) }
+//   build(LoggedOutApi) { access(public) }
+//   build(OtherApi, ApiClient) { access(public) name(Other) }
+//   build(UserInfoApi, ApiClient) { name(User) }
 //
-//   instance(providesUserName) { name(UserName) }
-//   bind(providesUserEmail, String) { name(UserEmail) }
-//   instance(UserViewModel)
+//   build(providesUserName) { name(UserName) }
+//   build(providesUserEmail, String) { name(UserEmail) }
+//   build(UserViewModel)
 // }
 protocol MyContainerProtocol {
 }
@@ -37,16 +37,16 @@ public protocol ApiClient {}
 
 protocol SomethingExternal {}
 
-// wiring: inject
+// sw: inject
 final class LoggedOutApi: ApiClient {
     let networkManager: NetworkManagerProtocol
     let something: SomethingExternal
     let parameter: String
 
     init(
-        // wiring: dependency
+        // sw: dependency
         networkManager: NetworkManagerProtocol,
-        // wiring: dependency
+        // sw: dependency
         something: SomethingExternal,
         parameter: String
     ) {
@@ -56,24 +56,24 @@ final class LoggedOutApi: ApiClient {
     }
 }
 
-// wiring: inject
+// sw: inject
 final class OtherApi: ApiClient {
     let networkManager: NetworkManagerProtocol
 
     init(
-        // wiring: dependency
+        // sw: dependency
         networkManager: NetworkManagerProtocol
     ) {
         self.networkManager = networkManager
     }
 }
 
-// wiring: inject
+// sw: inject
 final class UserInfoApi: ApiClient {
     let authNetworkManager: NetworkManagerProtocol
     
     init(
-        // wiring: dependency(Authenticated)
+        // sw: dependency(Authenticated)
         authNetworkManager: NetworkManagerProtocol
     ) {
         self.authNetworkManager = authNetworkManager
@@ -84,7 +84,7 @@ protocol NetworkManagerProtocol {
     func perform(request: URLRequest) async throws -> Data
 }
 
-// wiring: inject
+// sw: inject
 final class NetworkManager: NetworkManagerProtocol {
     init() {}
 
@@ -93,11 +93,11 @@ final class NetworkManager: NetworkManagerProtocol {
     }
 }
 
-// wiring: inject
+// sw: inject
 final class AuthNetworkManager: NetworkManagerProtocol {
     let sessionManager: SessionManager
 
-    init(/* wiring: dependency */ sessionManager: SessionManager) {
+    init(/* sw: dependency */ sessionManager: SessionManager) {
         self.sessionManager = sessionManager
     }
 
@@ -106,7 +106,7 @@ final class AuthNetworkManager: NetworkManagerProtocol {
     }
 }
 
-// wiring: inject
+// sw: inject
 public final class UserManager {
     let persistence: PersistenceProtocol
     let apiClient: ApiClient
@@ -115,9 +115,9 @@ public final class UserManager {
     let userEmail: String
 
     init(
-        /* wiring: dependency(User) */ persistence: PersistenceProtocol,
-        /* wiring: dependency(User) */ apiClient: ApiClient,
-        /* wiring: dependency */ sessionManager: SessionManager
+        /* sw: dependency(User) */ persistence: PersistenceProtocol,
+        /* sw: dependency(User) */ apiClient: ApiClient,
+        /* sw: dependency */ sessionManager: SessionManager
     ) {
         self.persistence = persistence
         self.apiClient = apiClient
@@ -127,11 +127,11 @@ public final class UserManager {
     }
 }
 
-// wiring: inject
+// sw: inject
 final class SessionManager {
     let persistence: PersistenceProtocol
 
-    init(/* wiring: dependency(Session) */ persistence: PersistenceProtocol) {
+    init(/* sw: dependency(Session) */ persistence: PersistenceProtocol) {
         self.persistence = persistence
     }
 }
@@ -139,38 +139,38 @@ final class SessionManager {
 protocol PersistenceProtocol {
 }
 
-// wiring: inject
+// sw: inject
 final class SessionDataPersistence: PersistenceProtocol {
     init() {}
 }
 
-// wiring: inject
+// sw: inject
 final class UserDataPersistence: PersistenceProtocol {
     init() {}
 }
 
-// wiring: inject
+// sw: inject
 func providesUserName(
-    /* wiring: dependency */ userManager: UserManager
+    /* sw: dependency */ userManager: UserManager
 ) -> String {
     userManager.userName
 }
 
-// wiring: inject
+// sw: inject
 func providesUserEmail(
-    /* wiring: dependency */ userManager: UserManager
+    /* sw: dependency */ userManager: UserManager
 ) -> String {
     userManager.userEmail
 }
 
-// wiring: inject
+// sw: inject
 final class UserViewModel {
     let userName: String
     let userEmail: String
 
     init(
-        /* wiring: dependency(UserName) */ userName: String,
-        /* wiring: dependency(UserEmail) */ userEmail: String
+        /* sw: dependency(UserName) */ userName: String,
+        /* sw: dependency(UserEmail) */ userEmail: String
     ) {
         self.userName = userName
         self.userEmail = userEmail
@@ -295,6 +295,7 @@ mint install fabio914/swift-wiring@main
 
 ## TO-DOs
 
+ - [ ] Add documentation;
  - [ ] Add Scopes with a collection of containers;
  - [ ] Support actors and main actors;
  - [ ] Support multiple initializers;
