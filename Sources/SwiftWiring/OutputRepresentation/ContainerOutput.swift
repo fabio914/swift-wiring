@@ -250,6 +250,31 @@ final class ContainerOutput {
 
     // MARK: - External Dependencies
 
+    private func externalDependencyWrapper() -> DeclSyntax {
+        let syntax: DeclSyntax =
+        """
+            public struct ExternalDependency<T> {
+                let closure: () -> T
+                
+                init(closure: @escaping () -> T) {
+                    self.closure = closure
+                }
+                
+                public static func constant(_ value: T) -> Self {
+                    .init(closure: { value })
+                }
+                
+                public static func builder(_ closure: @escaping () -> T) -> Self {
+                    .init(closure: closure)
+                }
+            }
+        """
+
+        return syntax
+            .with(\.leadingTrivia, .newlines(2) + .spaces(4))
+            .with(\.trailingTrivia, .newline)
+    }
+
     private func typeFor(externalDependency: ExternalDependency) -> FunctionTypeSyntax {
         FunctionTypeSyntax(
             leadingTrivia: .space,
@@ -303,19 +328,20 @@ final class ContainerOutput {
                             FunctionParameterSyntax(
                                 leadingTrivia: .newline + .spaces(8),
                                 firstName: .identifier(externalDependency.initParameterName),
-                                type: AttributedTypeSyntax(
-                                    specifiers: TypeSpecifierListSyntax {},
-                                    attributes: AttributeListSyntax {
-                                        AttributeSyntax(
-                                            leadingTrivia: .space,
-                                            attributeName: IdentifierTypeSyntax(name: .identifier("autoclosure"))
-                                        )
-                                        AttributeSyntax(
-                                            leadingTrivia: .space,
-                                            attributeName: IdentifierTypeSyntax(name: .identifier("escaping"))
-                                        )
-                                    },
-                                    baseType: typeFor(externalDependency: externalDependency)
+                                type: IdentifierTypeSyntax(
+                                    leadingTrivia: .space,
+                                    name: .identifier("ExternalDependency"),
+                                    genericArgumentClause: GenericArgumentClauseSyntax(
+                                        arguments: GenericArgumentListSyntax {
+                                            GenericArgumentSyntax(
+                                                argument: .init(
+                                                    IdentifierTypeSyntax(
+                                                        name: .identifier(externalDependency.identifier.bindingName)
+                                                    )
+                                                )
+                                            )
+                                        }
+                                    )
                                 )
                             )
                         }
@@ -343,8 +369,13 @@ final class ContainerOutput {
                                         leadingTrivia: .space,
                                         trailingTrivia: .space
                                     ),
-                                    rightOperand: DeclReferenceExprSyntax(
-                                        baseName: .identifier(externalDependency.initParameterName)
+                                    rightOperand: MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .identifier(externalDependency.initParameterName)
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier("closure")
+                                        )
                                     )
                                 )
                             )
@@ -382,6 +413,10 @@ final class ContainerOutput {
                 )
             }
         ) {
+            if !resolvedContainer.externalDependencies.isEmpty {
+                externalDependencyWrapper()
+            }
+
             for externalDependency in resolvedContainer.externalDependencies {
                 externalDependencyLet(for: externalDependency)
             }

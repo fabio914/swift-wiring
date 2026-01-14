@@ -34,15 +34,13 @@ final class InitialCoordinator: CoordinatorProtocol {
 
     @MainActor
     private func didStartWithSession(session: Session, user: User) {
-        let appContainer = self.appContainer
-
         // TODO: Create a way to make one container extend another (or take dependencies from another)
         // So we don't need to pass dependencies individually.
         let mainContainer = MainContainer(
-            loggerProtocol: appContainer.singletonLoggerProtocol,
-            session: session,
-            sessionManagerProtocol: appContainer.singletonSessionManagerProtocol,
-            user: user
+            loggerProtocol: .constant(appContainer.singletonLoggerProtocol),
+            session: .constant(session),
+            sessionManagerProtocol: .constant(appContainer.singletonSessionManagerProtocol),
+            user: .constant(user)
         )
 
         let viewController = mainContainer.buildMainCoordinator().instantiateRoot()
