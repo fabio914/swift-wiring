@@ -33,7 +33,9 @@ swift-wiring inject <source files> -o <output file with your Containers>
 
 <details>
 
-<summary>## 1. Configure your Xcode Target</summary>
+<summary>
+## 1. Configure your Xcode Target
+</summary>
 
 Add a "New Run Script Phase" to your target on Xcode to be able to run Swift Wiring as part of its build.
 
@@ -63,7 +65,9 @@ Now add an empty `Containers.generated.swift` file to your target, and add the p
 
 <details>
 
-<summary>## 2. Create your first Container</summary>
+<summary>
+## 2. Create your first Container
+</summary>
 
 TODO
 
@@ -71,7 +75,9 @@ TODO
 
 <details>
 
-<summary>## 3. Annotate your Injectable Classes and Functions, and Dependencies</summary>
+<summary>
+## 3. Annotate your Injectable Classes and Functions, and Dependencies
+</summary>
 
 TODO
 
@@ -102,7 +108,9 @@ protocol MyContainerProtocol {}
 
 <details>
 
-<summary>### Inject</summary>
+<summary>
+### Inject
+</summary>
 
 | Syntax | `sw: inject` |
 |---|---|
@@ -125,7 +133,9 @@ TODO
 
 <details>
 
-<summary>### Dependency</summary>
+<summary>
+### Dependency
+</summary>
 
 | Syntax | `sw: dependency(OptionalName?)` |
 |---|---|
@@ -140,7 +150,9 @@ TODO
 
 <details>
 
-<summary>### Container</summary>
+<summary>
+### Container
+</summary>
 
 | Syntax | `sw: container(ContainerName) { container subcommands }` |
 |---|---|
@@ -181,7 +193,9 @@ TODO
 
 <details>
 
-<summary>### Access</summary>
+<summary>
+### Access
+</summary>
 
 | Syntax | `access(public \| internal)` |
 |---|---|
@@ -195,7 +209,9 @@ TODO
 
 <details>
 
-<summary>### Build</summary>
+<summary>
+### Build
+</summary>
 
 | Syntax |
 |---|
@@ -230,7 +246,9 @@ Check the [Binding subcommands](#binding-subcommands) section below for the subc
 
 <details>
 
-<summary>### Singleton</summary>
+<summary>
+### Singleton
+</summary>
 
 | Syntax |
 |---|
@@ -267,7 +285,9 @@ Check the [Binding subcommands](#binding-subcommands) section below for the subc
 
 <details>
 
-<summary>### Access</summary>
+<summary>
+### Access
+</summary>
 
 | Syntax | `access(public \| internal)` |
 |---|---|
@@ -281,7 +301,9 @@ TODO
 
 <details>
 
-<summary>### Name</summary>
+<summary>
+### Name
+</summary>
 
 | Syntax | `name(DependencyName)` |
 |---|---|
