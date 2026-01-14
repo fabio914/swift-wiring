@@ -1,3 +1,16 @@
+# Why Swift Wiring?
+
+Most Automatic Dependency Injection tools for Swift either only work in runtime and provide no compile-time guarantee. Other compile-time tools require changes to the code, and require the project to use specific Swift Macros and use Swift Package manager.
+
+Swift Wiring doesn't modify the existing code, and it doesn't require any other code dependencies to be added to your project.
+
+It's core philosophy is to be:
+
+| **Non-intrusive** | All of its annotations and commands live in comments. |
+|---|---|
+| **Additive** | It does not modify your existing source code, and it only generates new code. |
+| **Simple** | It has only a few commands. It also won't check every error, so it relies on the compiler to ultimately verify the generated Container code. The generated code is human-readable and can be debugged. |
+
 # Installation
 
 ## How to install it?
@@ -46,45 +59,75 @@ Now add an empty `Containers.generated.swift` file to your target, and add the p
 
 ### 2. Create your first Container
 
+TODO
 
 ### 3. Annotate your Injectable Classes and Functions, and Dependencies
 
+TODO
 
 # Swift Wiring Syntax
 
-## Available `sw:` commands
+Swift Wiring commands are added to comments just before the parts of the Swift code that they should act on. 
+The tool will ignore every part of the comment until a `sw:` tag is found.
+
+**Example**
+
+```swift
+/*
+  Swift Wiring will ignore this part of the comment.
+
+  sw: container(MyContainer) {
+    // Single line comments are allowed inside Swift Wiring blocks
+    // ...
+  }
+*/
+protocol MyContainerProtocol {}
+```
+
+## `sw:` commands
 
 ### Inject
 
 | Syntax | `sw: inject` |
 |---|---|
 | Examples | `sw: inject` or `sw: inject()` |
+| Usage | Before top-level `class`es or `func`s |
+
+**Description**
+
+You can add this command to:
+
+ - Top-level `class`s (non-nested) with a single `init` function, without optionals, generics, etc, and without effects (`async`, `throws`, etc).
+
+ - Top-level (non-nested) `func`s that return simple types (without optionals, tuples, generics, etc) and without effects (`async`, `throws`, etc).
+
+Swift Wiring assumes that these classes and functions can be instantiated/called by the generated Container code. The programmer is responsible for defining the correct access control to ensure that this is the case.
+
+TODO
 
 ### Dependency
 
 | Syntax | `sw: dependency(OptionalName?)` |
 |---|---|
 | Examples | `sw: dependency`, `sw: dependency()` or `sw: dependency(SomeName)` |
+| Usage | Inside a `class`' `init`'s parameters list, or inside a top-level `func`'s parameters list |
+
+**Description**
+
+TODO
 
 ### Container
 
+| Syntax | `sw: container(ContainerName) { container subcommands }` |
+|---|---|
+| Usage | Before top-level `protocol`s |
 
-| Syntax |
-|---|
-| 
-```
-sw: container(ContainerName) {
-    // container subcommands
-}
-``` 
-|
 
-| Example |
-|---|
-|
+**Example**
 ```
 sw: container(MyContainer) {
     // Single line comments are allowed here
+    access(internal)
     build(MyClass)
     build(MyClass, MyProtocol) {
         // Single line comments are allowed here too
@@ -97,19 +140,111 @@ sw: container(MyContainer) {
     }
 }
 ```
-|
+
+**Description**
+
+This command receives a `ContainerName`, and a block with container subcommands.
+
+You can add this command to `protocol`s to instruct Swift Wiring to generate a Container class named `ContainerName` that conforms to that protocol. Notice that Swift Wiring won't validate if the Container implementation actually implements that protocol, it is recommended to use this command with empty protocols.
+
+Check the [Container subcommands](#container-subcommands) section below for the subcommands that are allowed in a Container definition. 
+
+TODO
 
 ## Container subcommands
 
 ### Access
 
+| Syntax | `access(public | internal)` |
+|---|---|
+| Examples | `access(public)` or `access(internal)` |
+
+**Description**
+
+TODO
+
 ### Build
 
+| Syntax |
+|---|
+| `build(ClassOrFunction, BindingType?) { optional binding subcommands }` |
+
+**Examples**
+
+```
+build(MyClass)
+```
+
+```
+build(MyClass, MyProtocol) { 
+    access(public) 
+}
+```
+
+```
+build(myProvider, MyProtocol) {
+    access(public)
+    name(Authenticated)
+}
+```
+
+**Description**
+
+TODO
+
+Check the [Binding subcommands](#binding-subcommands) section below for the subcommands that are allowed in a Build command.
+
 ### Singleton
+
+| Syntax |
+|---|
+| `singleton(ClassOrFunction, BindingType?) { optional binding subcommands }` |
+
+**Examples**
+
+```
+singleton(MyClass)
+```
+
+```
+singleton(MyClass, MyProtocol) { 
+    access(public) 
+}
+```
+
+```
+singleton(myProvider, MyProtocol) {
+    access(public)
+    name(Authenticated)
+}
+```
+
+**Description**
+
+TODO
+
+Check the [Binding subcommands](#binding-subcommands) section below for the subcommands that are allowed in a Singleton command.
 
 ## Binding subcommands
 
 ### Access
 
+| Syntax | `access(public | internal)` |
+|---|---|
+| Examples | `access(public)` or `access(internal)` |
+
+**Description**
+
+TODO
+
 ### Name
+
+| Syntax | `name(DependencyName)` |
+|---|---|
+| Examples | `name(Authenticated)` or `name(UserEmail)` |
+
+**Description**
+
+TODO
+
 
