@@ -81,6 +81,23 @@ public final class AppContainer: AppContainerProtocol {
 import UIKit
 
 internal final class MainContainer: MainContainerProtocol {
+
+    public struct ExternalDependency<T> {
+        let closure: () -> T
+        
+        init(closure: @escaping () -> T) {
+            self.closure = closure
+        }
+        
+        public static func constant(_ value: T) -> Self {
+            .init(closure: { value })
+        }
+        
+        public static func builder(_ closure: @escaping () -> T) -> Self {
+            .init(closure: closure)
+        }
+    }
+
     let externalLoggerProtocol: () -> LoggerProtocol
 
     let externalSession: () -> Session
@@ -92,15 +109,15 @@ internal final class MainContainer: MainContainerProtocol {
     private(set) lazy var singletonShortDateFormatter: DateFormatter = buildShortDateFormatter()
 
     public init(
-        loggerProtocol: @autoclosure @escaping () -> LoggerProtocol,
-        session: @autoclosure @escaping () -> Session,
-        sessionManagerProtocol: @autoclosure @escaping () -> SessionManagerProtocol,
-        user: @autoclosure @escaping () -> User
+        loggerProtocol: ExternalDependency<LoggerProtocol>,
+        session: ExternalDependency<Session>,
+        sessionManagerProtocol: ExternalDependency<SessionManagerProtocol>,
+        user: ExternalDependency<User>
     ) {
-        self.externalLoggerProtocol = loggerProtocol
-        self.externalSession = session
-        self.externalSessionManagerProtocol = sessionManagerProtocol
-        self.externalUser = user
+        self.externalLoggerProtocol = loggerProtocol.closure
+        self.externalSession = session.closure
+        self.externalSessionManagerProtocol = sessionManagerProtocol.closure
+        self.externalUser = user.closure
     }
 
     private func buildShortDateFormatter() -> DateFormatter {

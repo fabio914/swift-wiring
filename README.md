@@ -226,6 +226,23 @@ final class UserViewModel {
 import Foundation
 
 public final class MyContainer: MyContainerProtocol {
+
+    public struct ExternalDependency<T> {
+        let closure: () -> T
+        
+        init(closure: @escaping () -> T) {
+            self.closure = closure
+        }
+        
+        public static func constant(_ value: T) -> Self {
+            .init(closure: { value })
+        }
+        
+        public static func builder(_ closure: @escaping () -> T) -> Self {
+            .init(closure: closure)
+        }
+    }
+
     let externalSomethingExternal: () -> SomethingExternal
 
     private(set) lazy var singletonSessionPersistenceProtocol: PersistenceProtocol = buildSessionPersistenceProtocol()
@@ -237,9 +254,9 @@ public final class MyContainer: MyContainerProtocol {
     public private(set) lazy var singletonUserManager: UserManager = buildUserManager()
 
     public init(
-        somethingExternal: @autoclosure @escaping () -> SomethingExternal
+        somethingExternal: ExternalDependency<SomethingExternal>
     ) {
-        self.externalSomethingExternal = somethingExternal
+        self.externalSomethingExternal = somethingExternal.closure
     }
 
     public func buildOtherApiClient() -> ApiClient {
@@ -324,6 +341,7 @@ public final class MyContainer: MyContainerProtocol {
 
 ## TO-DOs
 
+ - [ ] Finish writing the documentation;
  - [ ] Add Scopes with a collection of containers;
  - [ ] Support actors and main actors;
  - [ ] Support multiple initializers;
