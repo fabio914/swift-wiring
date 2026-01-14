@@ -7,12 +7,15 @@ Swift Wiring doesn't modify the existing code, and it doesn't require any other 
 It's core philosophy is to be:
 
 **Non-intrusive**
+
 All of its annotations and commands live in comments.
 
 **Additive**
+
 It does not modify your existing source code, and it only generates new code.
 
 **Simple**
+
 It has only a few commands. It also won't check every error, so it relies on the compiler to ultimately verify the generated Container code. The generated code is human-readable and can be debugged.
 
 # Installation
@@ -31,11 +34,9 @@ Alternatively, you can clone this repository and run `sudo install.sh` to instal
 swift-wiring inject <source files> -o <output file with your Containers>
 ```
 
-<details>
-
-<summary>
 ## 1. Configure your Xcode Target
-</summary>
+
+<details>
 
 Add a "New Run Script Phase" to your target on Xcode to be able to run Swift Wiring as part of its build.
 
@@ -63,21 +64,17 @@ Now add an empty `Containers.generated.swift` file to your target, and add the p
 
 </details>
 
-<details>
-
-<summary>
 ## 2. Create your first Container
-</summary>
+
+<details>
 
 TODO
 
 </details>
 
-<details>
-
-<summary>
 ## 3. Annotate your Injectable Classes and Functions, and Dependencies
-</summary>
+
+<details>
 
 TODO
 
@@ -106,11 +103,9 @@ protocol MyContainerProtocol {}
 
 ## `sw:` commands
 
-<details>
-
-<summary>
 ### Inject
-</summary>
+
+<details>
 
 | Syntax | `sw: inject` |
 |---|---|
@@ -131,11 +126,9 @@ TODO
 
 </details>
 
-<details>
-
-<summary>
 ### Dependency
-</summary>
+
+<details>
 
 | Syntax | `sw: dependency(OptionalName?)` |
 |---|---|
@@ -148,11 +141,9 @@ TODO
 
 </details>
 
-<details>
-
-<summary>
 ### Container
-</summary>
+
+<details>
 
 | Syntax | `sw: container(ContainerName) { container subcommands }` |
 |---|---|
@@ -191,11 +182,9 @@ TODO
 
 ## Container subcommands
 
-<details>
-
-<summary>
 ### Access
-</summary>
+
+<details>
 
 | Syntax | `access(public \| internal)` |
 |---|---|
@@ -207,11 +196,9 @@ TODO
 
 </details>
 
-<details>
-
-<summary>
 ### Build
-</summary>
+
+<details>
 
 | Syntax |
 |---|
@@ -244,11 +231,10 @@ Check the [Binding subcommands](#binding-subcommands) section below for the subc
 
 </details>
 
-<details>
 
-<summary>
 ### Singleton
-</summary>
+
+<details>
 
 | Syntax |
 |---|
@@ -283,11 +269,9 @@ Check the [Binding subcommands](#binding-subcommands) section below for the subc
 
 ## Binding subcommands
 
-<details>
-
-<summary>
 ### Access
-</summary>
+
+<details>
 
 | Syntax | `access(public \| internal)` |
 |---|---|
@@ -299,11 +283,9 @@ TODO
 
 </details>
 
-<details>
-
-<summary>
 ### Name
-</summary>
+
+<details>
 
 | Syntax | `name(DependencyName)` |
 |---|---|
