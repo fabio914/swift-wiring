@@ -1,8 +1,8 @@
 ## Injection Example
 
-This project assumes that `swift-wiring` is available in your `$PATH`. 
+This project assumes that `swift-wiring` is available in Xcode's' `PATH` or in its build folder. Make sure to build Swift Wiring first (run `build.sh`).
 
-Make sure Swift Wiring is built first (run `build.sh`). Alternatively, you can install it with [Mint](https://github.com/yonaskolb/Mint), or by running `sudo install.sh`.
+Alternatively, you can install it with [Mint](https://github.com/yonaskolb/Mint), or by running `sudo install.sh`.
 
 Use [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the `InjectionExample.xcodeproj`.
 

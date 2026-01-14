@@ -1,12 +1,50 @@
+<img src="Images/logo.png" width="100" />
+
 # Swift Wiring
 
-This is a command line tool for compile-time Automatic Dependency Injection for [Swift](https://www.swift.org). 
+This is a command line tool for compile-time Automatic Dependency Injection for [Swift](https://www.swift.org).
+
 It reads `sw:` annotations in the Swift source code and generates `Container`s with your resolved dependencies.
 
-This tool is still in active development and is **experimental**. I don't recommend adopting it in your project yet. 
+**Attention:** This tool is still in active development and is **experimental**. I don't recommend adopting it in your project yet. 
 Check the TO-DO list below for some of the things that still need to be implemented.
 
-**Input**
+## Why?
+
+Most automatic dependency injection tools for Swift either only work in runtime and provide no compile-time guarantee. Other compile-time tools require changes to the code, and require the project to use specific Swift Macros and use Swift Package Manager.
+
+Swift Wiring doesn't modify the existing code, and it doesn't require any other code dependencies to be added to your project.
+
+It aims to be:
+
+* **Non-intrusive**
+
+  - All of its annotations and commands live in comments.
+
+
+* **Additive**
+
+  - It does not modify your existing source code, and it only generates new code.
+
+* **Simple**
+
+  - It has only a few commands.
+  - It won't check every error, so it relies on the Swift compiler to ultimately verify the generated Container code.
+  - The generated code is human-readable and can be debugged.
+
+## Documentation
+
+* [How to Setup](Docs/SETUP.md)
+* [Syntax and Commands](Docs/DOCUMENTATION.md)
+
+## Example
+
+Navigate to the `Example/` folder and use [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate an Xcode project of an iOS app that uses this tool.
+
+<details>
+
+<summary>Example Input</summary>
+
 ```swift
 import Foundation
 
@@ -178,7 +216,12 @@ final class UserViewModel {
 }
 ```
 
-**Output**
+</details>
+
+<details>
+
+<summary>Example Output</summary>
+
 ```swift
 import Foundation
 
@@ -277,25 +320,10 @@ public final class MyContainer: MyContainerProtocol {
 }
 ```
 
-## Usage
-
-```shell
-swift-wiring inject <source files> -o <output file with your Containers>
-```
-
-## Example
-
-Navigate to the `Example/` folder and use [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate an Xcode project of an iOS app that uses this tool.
-
-You can install this command line tool with [Mint](https://github.com/yonaskolb/Mint):
-
-```shell
-mint install fabio914/swift-wiring@main
-```
+</details>
 
 ## TO-DOs
 
- - [ ] Add documentation;
  - [ ] Add Scopes with a collection of containers;
  - [ ] Support actors and main actors;
  - [ ] Support multiple initializers;
