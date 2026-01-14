@@ -14,7 +14,10 @@ Access [this link](Docs/DOCUMENTATION.md) to read how to use it.
 
 Navigate to the `Example/` folder and use [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate an Xcode project of an iOS app that uses this tool.
 
-**Input**
+<details>
+
+<summary>Example Input</summary>
+
 ```swift
 import Foundation
 
@@ -186,7 +189,12 @@ final class UserViewModel {
 }
 ```
 
-**Output**
+</details>
+
+<details>
+
+<summary>Example Output</summary>
+
 ```swift
 import Foundation
 
@@ -285,9 +293,10 @@ public final class MyContainer: MyContainerProtocol {
 }
 ```
 
+</details>
+
 ## TO-DOs
 
- - [ ] Add documentation;
  - [ ] Add Scopes with a collection of containers;
  - [ ] Support actors and main actors;
  - [ ] Support multiple initializers;
