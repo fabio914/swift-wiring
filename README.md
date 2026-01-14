@@ -1,6 +1,7 @@
 # Swift Wiring
 
-This is a command line tool for compile-time Automatic Dependency Injection for [Swift](https://www.swift.org). 
+This is a command line tool for compile-time Automatic Dependency Injection for [Swift](https://www.swift.org).
+
 It reads `sw:` annotations in the Swift source code and generates `Container`s with your resolved dependencies.
 
 **Attention:** This tool is still in active development and is **experimental**. I don't recommend adopting it in your project yet. 
