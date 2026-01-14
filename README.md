@@ -1,3 +1,5 @@
+<img src="Images/logo.png" width="100" />
+
 # Swift Wiring
 
 This is a command line tool for compile-time Automatic Dependency Injection for [Swift](https://www.swift.org).
