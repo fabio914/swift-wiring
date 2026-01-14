@@ -14,16 +14,16 @@ Swift Wiring doesn't modify the existing code, and it doesn't require any other 
 
 It aims to be:
 
-* Non-intrusive
+* **Non-intrusive**
 
   - All of its annotations and commands live in comments.
 
 
-* Additive
+* **Additive**
 
   - It does not modify your existing source code, and it only generates new code.
 
-* Simple
+* **Simple**
 
   - It has only a few commands.
   - It won't check every error, so it relies on the Swift compiler to ultimately verify the generated Container code.
