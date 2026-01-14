@@ -1,19 +1,21 @@
 # Why Swift Wiring?
 
-Most Automatic Dependency Injection tools for Swift either only work in runtime and provide no compile-time guarantee. Other compile-time tools require changes to the code, and require the project to use specific Swift Macros and use Swift Package manager.
+Most automatic dependency injection tools for Swift either only work in runtime and provide no compile-time guarantee. Other compile-time tools require changes to the code, and require the project to use specific Swift Macros and use Swift Package Manager.
 
 Swift Wiring doesn't modify the existing code, and it doesn't require any other code dependencies to be added to your project.
 
 It's core philosophy is to be:
 
-| **Non-intrusive** | All of its annotations and commands live in comments. |
-|---|---|
-| **Additive** | It does not modify your existing source code, and it only generates new code. |
-| **Simple** | It has only a few commands. It also won't check every error, so it relies on the compiler to ultimately verify the generated Container code. The generated code is human-readable and can be debugged. |
+**Non-intrusive**
+All of its annotations and commands live in comments.
+
+**Additive**
+It does not modify your existing source code, and it only generates new code.
+
+**Simple**
+It has only a few commands. It also won't check every error, so it relies on the compiler to ultimately verify the generated Container code. The generated code is human-readable and can be debugged.
 
 # Installation
-
-## How to install it?
 
 You can install this command line tool with [Mint](https://github.com/yonaskolb/Mint), by running:
 
@@ -25,13 +27,13 @@ Alternatively, you can clone this repository and run `sudo install.sh` to instal
 
 # Configuration
 
-## How to use it?
-
 ```shell
 swift-wiring inject <source files> -o <output file with your Containers>
 ```
 
-### 1. Configure your Xcode Target 
+<details>
+
+<summary>## 1. Configure your Xcode Target</summary>
 
 Add a "New Run Script Phase" to your target on Xcode to be able to run Swift Wiring as part of its build.
 
@@ -57,13 +59,23 @@ Now add an empty `Containers.generated.swift` file to your target, and add the p
 
 ![Run Phase](run_phase.png)
 
-### 2. Create your first Container
+</details>
+
+<details>
+
+<summary>## 2. Create your first Container</summary>
 
 TODO
 
-### 3. Annotate your Injectable Classes and Functions, and Dependencies
+</details>
+
+<details>
+
+<summary>## 3. Annotate your Injectable Classes and Functions, and Dependencies</summary>
 
 TODO
+
+</details>
 
 # Swift Wiring Syntax
 
@@ -73,6 +85,8 @@ The tool will ignore every part of the comment until a `sw:` tag is found.
 **Example**
 
 ```swift
+import Foundation
+
 /*
   Swift Wiring will ignore this part of the comment.
 
@@ -86,7 +100,9 @@ protocol MyContainerProtocol {}
 
 ## `sw:` commands
 
-### Inject
+<details>
+
+<summary>### Inject</summary>
 
 | Syntax | `sw: inject` |
 |---|---|
@@ -105,7 +121,11 @@ Swift Wiring assumes that these classes and functions can be instantiated/called
 
 TODO
 
-### Dependency
+</details>
+
+<details>
+
+<summary>### Dependency</summary>
 
 | Syntax | `sw: dependency(OptionalName?)` |
 |---|---|
@@ -116,7 +136,11 @@ TODO
 
 TODO
 
-### Container
+</details>
+
+<details>
+
+<summary>### Container</summary>
 
 | Syntax | `sw: container(ContainerName) { container subcommands }` |
 |---|---|
@@ -151,11 +175,15 @@ Check the [Container subcommands](#container-subcommands) section below for the 
 
 TODO
 
+</details>
+
 ## Container subcommands
 
-### Access
+<details>
 
-| Syntax | `access(public | internal)` |
+<summary>### Access</summary>
+
+| Syntax | `access(public \| internal)` |
 |---|---|
 | Examples | `access(public)` or `access(internal)` |
 
@@ -163,7 +191,11 @@ TODO
 
 TODO
 
-### Build
+</details>
+
+<details>
+
+<summary>### Build</summary>
 
 | Syntax |
 |---|
@@ -194,7 +226,11 @@ TODO
 
 Check the [Binding subcommands](#binding-subcommands) section below for the subcommands that are allowed in a Build command.
 
-### Singleton
+</details>
+
+<details>
+
+<summary>### Singleton</summary>
 
 | Syntax |
 |---|
@@ -225,11 +261,15 @@ TODO
 
 Check the [Binding subcommands](#binding-subcommands) section below for the subcommands that are allowed in a Singleton command.
 
+</details>
+
 ## Binding subcommands
 
-### Access
+<details>
 
-| Syntax | `access(public | internal)` |
+<summary>### Access</summary>
+
+| Syntax | `access(public \| internal)` |
 |---|---|
 | Examples | `access(public)` or `access(internal)` |
 
@@ -237,7 +277,11 @@ Check the [Binding subcommands](#binding-subcommands) section below for the subc
 
 TODO
 
-### Name
+</details>
+
+<details>
+
+<summary>### Name</summary>
 
 | Syntax | `name(DependencyName)` |
 |---|---|
@@ -247,4 +291,5 @@ TODO
 
 TODO
 
+</details>
 
